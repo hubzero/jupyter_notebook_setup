@@ -167,6 +167,7 @@ def make_new(args):
     print("Dash: %s" % (args.with_dash))
     if not args.desktop:
         print("Env Dir: %s" % args.envdir)
+    print("No notebooks: %s" % (args.no_notebooks))
     print()
 
     env_dir = args.envdir
@@ -231,12 +232,13 @@ def make_new(args):
         print("********\n%s\n********" % cmd)
         os.system(cmd)
 
-    # start_jupyter script
-    os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyter'), bindir))
-    os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyterlab'), bindir))
+    if not args.no_notebooks:
+        # start_jupyter script
+        os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyter'), bindir))
+        os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyterlab'), bindir))
 
-    install_octave(instpath, env_dir, args.desktop)
-    install_extensions(instpath, args.desktop)
+        install_octave(instpath, env_dir, args.desktop)
+        install_extensions(instpath, args.desktop)
 
     if not args.desktop:
         write_env(args.ver, env_dir, instpath)
@@ -379,6 +381,7 @@ if __name__ == '__main__':
                         help='Environment directory for hubs (default: /apps/share64/debian7/environ.d)')
     parser.add_argument('--with-r', action='store_true', 
                         help='Install the R kernel and packages')
+    parser.add_argument('--no-notebooks', action='store_true', help='Do not install notebooks')
 
 
     subparsers = parser.add_subparsers()

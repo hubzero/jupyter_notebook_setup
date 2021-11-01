@@ -68,7 +68,7 @@ def parse_cmd_line():
     prog = "start_jupyter"
 
     parser = argparse.ArgumentParser(
-        usage="""usage: %(prog)s [-h] [-t] [name]
+        usage="""usage: %(prog)s [-h] [-t] [-c] [-d] [-A] [-T dir] [name]
 
 Start a Jupyter notebook-based tool
 
@@ -84,13 +84,16 @@ optional arguments:
   -h, --help  show this help message and exit.
   -d          Show debug (verbose) output.
   -t          Run as a Tool with no notebook controls.
+  -c          Copy instead of link notebook files.
   -A          Run in AppMode.
+  -T dir      Search for notebook starting in dir.
 """,
         prog=prog,
         add_help=False)
     parser.add_argument('-t', dest='tool', action='store_true')
     parser.add_argument('-A', dest='app', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
+    parser.add_argument('-c', dest='copyNotebooks', action='store_true')
     parser.add_argument('-T')
     parser.add_argument('-h', '--help', dest='help', action='store_true')
     parser.add_argument('name', nargs='?')
@@ -164,7 +167,7 @@ def get_cookie():
     return cookie_name, token
 
 
-def find_notebook(name, tool, arglist):
+def find_notebook(name, tool, copyNotebooks, arglist):
     if tool is None:
         if not os.path.isfile(name):
             print("Cannot find %s." % name, file=sys.stderr)
@@ -180,7 +183,11 @@ def find_notebook(name, tool, arglist):
     if os.path.exists(tdest):
         shutil.rmtree(tdest)
     os.makedirs(tdest)
-    call("cp -sRf %s/* %s" % (tool, tdest), shell=True)
+
+    realPath = os.path.realpath(os.path.abspath(tool))
+    call("cp -sRf %s/* %s" % (realPath,tdest), shell=True)
+    if copyNotebooks:
+        call("""( cd %s; find ./ -name "*.ipynb" -exec /bin/cp --remove-destination {} %s/{} \; )""" % (realPath,tdest),shell=True)
 
     # notebook will be either relative to the tool
     # directory or in the bin directory
@@ -207,7 +214,7 @@ def run_notebook(args):
             os.chdir(os.environ['HOME'])
 
     else:
-        nb_dir, nb_name = find_notebook(args.name, args.T, arglist)
+        nb_dir, nb_name = find_notebook(args.name, args.T, args.copyNotebooks, arglist)
         if nb_dir:
             print("Changing directory to", nb_dir)
             os.chdir(nb_dir)
@@ -216,10 +223,14 @@ def run_notebook(args):
             arglist.append('--NotebookApp.default_url="apps/%s"' % nb_name)
         else:
             arglist.append('--NotebookApp.default_url="notebooks/%s"' % nb_name)
+# disable ~/.local/lib/pythonX.Y/site-packages for tools
+        os.environ['PYTHONNOUSERSITE'] = "yes"
 
     # When invoked by the system, the shell will be dash.
     workspace = True
-    if os.environ["SHELL"] == "/bin/dash":
+    if "SHELL" in os.environ:
+        os.environ['SHELL'] = "/bin/bash"
+    else:
         workspace = False
         # Users probably want "bash"
         os.environ['SHELL'] = "/bin/bash"
@@ -282,15 +293,22 @@ def find_header(file):
 
 
 header_template = """
-/** HEADER 5 **/
+/** HEADER 7 **/
 require(["jquery", "base/js/namespace", "base/js/dialog"],
     function($, Jupyter, dialog) {
         var logo = document.getElementById("ipython_notebook").children[0];
         var nb_url = logo.href;
         var host = window.location.hostname.replace('proxy.', '');
         var uid = ${uid};
-        try {var base = Jupyter.notebook.base_url;}
-        catch (err) {var base = IPython.notebook.base_url;}
+        try {
+            var base = '/' + window.location.pathname.split('/').slice(1,5).join('/') + '/';
+        } catch(err) {
+            try {
+                var base = Jupyter.notebook.base_url;
+            } catch (err) {
+                var base = IPython.notebook.base_url;
+            }
+        }
         var stat = 'https://' + window.location.host + base + 'static/';
         logo.href = 'https://' + host + '/members/' + uid + '/dashboard';
         logo.target = "_blank";
@@ -302,8 +320,16 @@ require(["jquery", "base/js/namespace", "base/js/dialog"],
         var term = document.getElementById("login_widget");
         var end = base.indexOf('/',7);
         var session = base.slice(7,end);
-        var url = `https://${host}/tools/jupyter/stop?sess=${session}`;
-        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
+        var url = `https://${host}/tools/anonymous/stop?sess=${session}`;
+
+        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${lhost}.org/feedback/report_problems')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
+
+        try {
+            var quit = document.getElementById("shutdown");
+            quit.parentNode.removeChild(quit);
+        } 
+        catch(err) {
+        }
 
         if (nb_url.indexOf('token') === -1) { return };
         url = '<li id=\"share\" title=\"Share Session\"><a href=\"#\" id=\"share\">Share Session</a></li>';
@@ -331,7 +357,7 @@ require(["jquery", "base/js/namespace", "base/js/dialog"],
 
 css_contents = """/****** AUTOMATICALLY GENERATED BY NotebookSettings **************/
 /* Warning: Anything you add here will get overwritten! */
-/** HEADER 5 **/
+/** HEADER 7 **/
 
 /* remove clusters tab in tree view */
 .clusters_tab_link {
@@ -354,7 +380,6 @@ div.cell.selected {
 }
 """
 
-
 def write_custom():
     cdir = os.path.expanduser("~/.jupyter/custom")
     if not os.path.exists(cdir):
@@ -365,14 +390,16 @@ def write_custom():
 
     # write js and css if necessary
     ver = find_header(cjs)
-    if ver == 5:
+    if ver == 7:
         return
 
     with open(css, 'w') as f:
         f.write(css_contents)
 
     t = Template(header_template)
+# hub_session_container
     host = os.uname()[1]
+    host = host.split('_')[0]
     uid = os.getuid()
     with open(cjs, 'w') as f:
         f.write(t.safe_substitute(uid=uid, shost=host, lhost=host.lower()))
