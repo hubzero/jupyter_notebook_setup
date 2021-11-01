@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import sys
 import os
+import re
 import argparse
 from subprocess import check_output
 from string import Template
@@ -248,7 +249,7 @@ def make_new(args):
 
 
 def do_downloads(ver):
-    ret = os.system("wget http://packages.hubzero.org/blobs/anaconda3-%s.tar.xz -O - | tar -xJ" % ver)
+    ret = os.system("wget http://packages.hubzero.org/blobs/anaconda-%s.tar.xz -O - | tar -xJ" % ver)
     if ret:
         print("Download failed.")
         sys.exit(1)
@@ -257,7 +258,7 @@ def do_downloads(ver):
 def make_netinst(args):
     do_downloads(args.ver)
 
-    instpath = os.path.realpath('anaconda3-%s' % (args.ver))
+    instpath = os.path.realpath('anaconda-%s' % (args.ver))
 
     # write env modules
     env_dir = '/apps/share64/debian7/environ.d'
@@ -265,7 +266,7 @@ def make_netinst(args):
 
     if args.nopy2:
         # remove python2 kernel from menu
-        kpath = "/apps/share64/debian7/anaconda/anaconda3-%s/share/jupyter/kernels/python2" % args.ver
+        kpath = os.path.join(instpath,"share","jupyter","kernels","python2")
         os.system("mv %s/kernel.json %s/kernel.json.disabled" % (kpath, kpath))
 
     try:
@@ -275,11 +276,11 @@ def make_netinst(args):
         octave = False
     if octave is False:
         print("Could not find octave.  Disabling octave kernel in menu.")
-        kpath = "/apps/share64/debian7/anaconda/anaconda3-%s/share/jupyter/kernels/octave" % args.ver
+        kpath = os.path.join(instpath,"share","jupyter","kernels","octave")
         os.system("mv %s/kernel.json %s/kernel.json.disabled" % (kpath, kpath))
 
     hostimage = os.uname()[1].lower() + '.png'
-    imagedir = "/apps/share64/debian7/anaconda/anaconda3-%s/share/jupyter/static" % args.ver
+    imagedir = os.path.join(instpath,"share","jupyter","static")
     hifull = os.path.join(imagedir, hostimage)
     hzfull = os.path.join(imagedir, 'hubzero.png')
     if not os.path.isfile(hifull):
@@ -303,7 +304,7 @@ def do_install(desktop, cname, env_dir, instpath, nopy2):
 
 
 def make_cleanup(args):
-    instpath = os.path.realpath('anaconda3-%s' % (args.ver))
+    instpath = os.path.realpath('anaconda-%s' % (args.ver))
     check_perm(instpath)
 
 
@@ -366,6 +367,15 @@ if __name__ == '__main__':
     global dirname
     dirname = os.path.dirname(os.path.realpath(sys.argv[0]))
 
+    installBase    = os.path.dirname(os.path.dirname(os.path.realpath(os.path.abspath(__file__))))
+    installPattern = os.path.join(os.sep,'apps','share64','([a-zA-Z0-9]+)','anaconda')
+    patternMatch = re.match(installPattern,installBase)
+    if patternMatch:
+        installOS = patternMatch.group(1)
+    else:
+        installOS = 'debian10'
+    installEnvDir = os.path.join(os.sep,'apps','share64',installOS,'environ.d')
+
     # at least one install fails if this is not set
     os.environ['LANG'] = 'en_US.UTF-8'
 
@@ -377,8 +387,8 @@ if __name__ == '__main__':
     parser.add_argument('--with-vnc', action='store_true', help='Install VNC')
     parser.add_argument('--with-ml', action='store_true', help='Install Machine Learning tools')
     parser.add_argument('--desktop', action='store_true', help='Install Desktop version')
-    parser.add_argument('--envdir', type=str, default='/apps/share64/debian7/environ.d',
-                        help='Environment directory for hubs (default: /apps/share64/debian7/environ.d)')
+    parser.add_argument('--envdir', type=str, default=installEnvDir,
+                        help='Environment directory for hubs (default: %s)' % (installEnvDir))
     parser.add_argument('--with-r', action='store_true', 
                         help='Install the R kernel and packages')
     parser.add_argument('--no-notebooks', action='store_true', help='Do not install notebooks')
