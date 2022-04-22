@@ -248,6 +248,60 @@ def make_new(args):
     cleanup(instpath, args.desktop)
 
 
+def make_update(args):
+    global dirname  # where the install scripts are
+
+    print(args)
+    print("Updating version %s" % args.ver)
+    print("Nanohub: %s" % (args.with_nanohub))
+    print("Desktop: %s" % (args.desktop))
+    print("ML: %s" % (args.with_ml))
+    print("VNC: %s" % (args.with_vnc))
+    print("Dash: %s" % (args.with_dash))
+    if not args.desktop:
+        print("Env Dir: %s" % args.envdir)
+    print()
+
+    env_dir = args.envdir
+    instpath = os.path.realpath('anaconda-%s' % (args.ver))
+    if not os.path.isdir(instpath):
+        print("Error: %s not found." % (instpath))
+        sys.exit(1)
+
+    bindir = os.path.join(instpath, 'bin')
+
+    # set PATH so we can use 'conda'  and 'pip'
+    path = os.environ['PATH']
+    os.environ['PATH'] = bindir + ':' + path
+
+    if args.with_nanohub:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_conda_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        os.system(cmd)
+
+        cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_pip_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        os.system(cmd)
+
+    if args.with_ml:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'ml_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        os.system(cmd)
+
+    if args.with_r:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'r_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        os.system(cmd)
+
+    if args.with_vnc:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
+        print("********\n%s\n********" % cmd)
+        os.system(cmd)
+
+    check_perm(instpath)
+    cleanup(instpath, args.desktop)
+
+
 def do_downloads(ver):
     ret = os.system("wget http://packages.hubzero.org/blobs/anaconda-%s.tar.xz -O - | tar -xJ" % ver)
     if ret:
@@ -402,6 +456,11 @@ if __name__ == '__main__':
     parser_install.set_defaults(func=make_new)
 
     # create the parser for the "update" command
+    parser_install = subparsers.add_parser('update')
+    parser_install.add_argument('ver', type=str)
+    parser_install.set_defaults(func=make_update)
+
+    # create the parser for the "netinst" command
     parser_up = subparsers.add_parser('netinst')
     parser_up.add_argument('ver', type=str)
     parser_up.set_defaults(func=make_netinst)
