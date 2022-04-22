@@ -4,7 +4,7 @@ pip install -U --upgrade-strategy only-if-needed scikit-video
 pip install -U --upgrade-strategy only-if-needed yamlmagic
 pip install -U --upgrade-strategy only-if-needed mapboxgl
 pip install -U --upgrade-strategy only-if-needed moviepy
-pip install -U --upgrade-strategy only-if-needed papermill
+#pip install -U --upgrade-strategy only-if-needed papermill
 pip install -U --upgrade-strategy only-if-needed nteract-scrapbook
 pip install -U --upgrade-strategy only-if-needed git+https://github.com/SheffieldML/GPy.git
 pip install -U --upgrade-strategy only-if-needed cymysql
@@ -62,4 +62,3 @@ git clone https://github.com/martin-hunt/jupyter_snippets.git /tmp/jupyter_snipp
 jupyter nbextension install --sys-prefix /tmp/jupyter_snippets
 jupyter nbextension enable --sys-prefix jupyter_snippets/main
 rm -rf /tmp/jupyter_snippets
-

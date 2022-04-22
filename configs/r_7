@@ -5,11 +5,11 @@ echo 'INSTALLING R PACKAGES'
 basedir=$(dirname $(dirname $(which python)))
 path=$PATH
 
-conda create -y --name R r-essentials anaconda
+conda create -y --name R r-essentials r-base
 export PATH=${basedir}/envs/R/bin:$PATH
 
 conda install -y rpy2
-conda install -y r-keras
+# conda install -y r-keras
 # conda install -y r-tensorflow=1.10
 conda install -y r-plotly  -c defaults -c conda-forge
 

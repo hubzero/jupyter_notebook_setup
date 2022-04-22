@@ -3,23 +3,23 @@ conda update -y --all
 conda install -y tornado
 conda install -y nodejs
 npm install -g npm
-conda install -y mysql
-conda install -y pymysql
-conda install -y bokeh
-conda install -y dask
-conda install -y jupyterlab
-conda install -y notebook
-conda install -y mysql-connector-python
-conda install -y rdkit -c defaults -c conda-forge
-conda install -y ffmpeg  -c defaults -c conda-forge
-conda install -y pint  -c defaults -c conda-forge
-conda install -y qgrid  -c defaults -c conda-forge
+conda install -y mysql=5.7.24
+conda install -y pymysql=1.0.2
+conda install -y bokeh=2.4.1
+conda install -y dask=2021.10.0
+conda install -y jupyterlab=3.2.1
+conda install -y notebook=6.4.6
+#conda install -y mysql-connector-python
+conda install -y rdkit=2019.09.3 -c defaults -c conda-forge
+conda install -y ffmpeg=4.2.2  -c defaults -c conda-forge
+conda install -y pint=0.18  -c defaults -c conda-forge
+conda install -y qgrid=1.3.1  -c defaults -c conda-forge
 jupyter labextension install @jupyter-widgets/jupyterlab-manager
 jupyter labextension install qgrid
-conda install -y oct2py  -c defaults -c conda-forge
-conda install -y celery  -c defaults -c conda-forge
-conda install -y gmaps  -c defaults -c conda-forge
-conda install -y ipyleaflet  -c defaults -c conda-forge
-conda install -y bagit  -c defaults -c conda-forge
-conda install -y fftw -c defaults -c conda-forge
-conda install -y nbsphinx -c defaults -c conda-forge
+conda install -y oct2py=5.2.0  -c defaults -c conda-forge
+conda install -y celery=5.0.5  -c defaults -c conda-forge
+conda install -y gmaps=0.9.0  -c defaults -c conda-forge
+conda install -y ipyleaflet=0.14.0  -c defaults -c conda-forge
+conda install -y bagit=1.8.1  -c defaults -c conda-forge
+conda install -y fftw=3.3.9 -c defaults -c conda-forge
+conda install -y nbsphinx=0.8.7 -c defaults -c conda-forge
