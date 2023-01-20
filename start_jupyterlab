@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 This script handles four different modes.
 
@@ -29,7 +28,7 @@ import argparse
 import json
 from subprocess import call, Popen, check_output
 
-EXAMPLES = '/apps/share64/debian7/anaconda/examples'
+EXAMPLES = '/apps/share64/debian10/anaconda/examples'
 
 
 def handler(signum, frame):
@@ -153,7 +152,8 @@ def run_notebook(args):
     call(cmdlist)
     print("\n\nNotebook server terminated.\n")
 
-if __name__ == "__main__":
+
+def main():
     if os.getuid() == 0:
         print("Do not run this as root.", file=sys.stderr)
         sys.exit(1)
@@ -165,3 +165,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     run_notebook(args)
+
+
+if __name__ == "__main__":
+    main()

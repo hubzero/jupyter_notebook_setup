@@ -158,8 +158,9 @@ def get_scriptname(ver):
 def make_new(args):
     global dirname  # where the install scripts are
 
-    print(args)
-    print("Installing version %s" % args.ver)
+#   print(args)
+    print()
+    print("Installing version %s" % (args.ver))
     print("Nanohub: %s" % (args.with_nanohub))
     print("Desktop: %s" % (args.desktop))
     print("Python2: %s" % (args.with_py2))
@@ -167,8 +168,10 @@ def make_new(args):
     print("VNC: %s" % (args.with_vnc))
     print("Dash: %s" % (args.with_dash))
     if not args.desktop:
-        print("Env Dir: %s" % args.envdir)
+        print("Env Dir: %s" % (args.envdir))
     print("No notebooks: %s" % (args.no_notebooks))
+    if args.themes:
+        print("Themes: %s" % (args.themes))
     print()
 
     env_dir = args.envdir
@@ -233,10 +236,59 @@ def make_new(args):
         print("********\n%s\n********" % cmd)
         os.system(cmd)
 
+    start_jupyter_main = """    sys.exit(main())
+
+
+"""
+
+    start_jupyter_main_themes = """    doThemes = False
+    checkForThemes = False
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            if arg == '--themes':
+                checkForThemes = True
+                break
+    if checkForThemes:
+        sys.argv.remove('--themes')
+        try:
+            from {THEMEPACKAGE} import main as themesMain
+            doThemes = True
+        except ImportError:
+            doThemes = False
+        else:
+            sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+            sys.exit(themesMain())
+
+    if not doThemes:
+        sys.exit(main())
+
+
+"""
+
     if not args.no_notebooks:
+        pythonCmd = os.path.join(bindir,'python')
         # start_jupyter script
-        os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyter'), bindir))
-        os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyterlab'), bindir))
+#       os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyter'), bindir))
+        with open(os.path.join(dirname,'start_jupyter'),'r') as fp:
+            startJupyterTemplate = fp.read()
+        if args.themes:
+            main = start_jupyter_main_themes.format(THEMEPACKAGE=args.themes)
+        else:
+            main = start_jupyter_main
+        with open(os.path.join(bindir,'start_jupyter'),'w') as fp:
+            fp.write("#!%s\n" % (pythonCmd))
+            fp.write(startJupyterTemplate)
+            fp.write(main)
+        os.system('chmod a+x %s' % (os.path.join(bindir,'start_jupyter')))
+
+        # start_jupyterlab script
+#       os.system('cp %s %s' % (os.path.join(dirname, 'start_jupyterlab'), bindir))
+        with open(os.path.join(dirname,'start_jupyterlab'),'r') as fp:
+            startJupyterLabTemplate = fp.read()
+        with open(os.path.join(bindir,'start_jupyterlab'),'w') as fp:
+            fp.write("#!%s\n" % (pythonCmd))
+            fp.write(startJupyterLabTemplate)
+        os.system('chmod a+x %s' % (os.path.join(bindir,'start_jupyterlab')))
 
         install_octave(instpath, env_dir, args.desktop)
         install_extensions(instpath, args.desktop)
@@ -315,8 +367,7 @@ def make_netinst(args):
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
 
     # write env modules
-    env_dir = '/apps/share64/debian7/environ.d'
-    write_env(args.ver, env_dir, pathlist)
+    write_env(args.ver, args.envdir, pathlist)
 
     if args.nopy2:
         # remove python2 kernel from menu
@@ -446,6 +497,7 @@ if __name__ == '__main__':
     parser.add_argument('--with-r', action='store_true', 
                         help='Install the R kernel and packages')
     parser.add_argument('--no-notebooks', action='store_true', help='Do not install notebooks')
+    parser.add_argument('--themes', type=str, help='Install with themes from package')
 
 
     subparsers = parser.add_subparsers()
@@ -470,7 +522,7 @@ if __name__ == '__main__':
     parser_fix.add_argument('ver', default='',  nargs='?', type=str)
     parser_fix.set_defaults(func=make_cleanup)
 
-    
+
     args = parser.parse_args()
     args.func(args)
 
