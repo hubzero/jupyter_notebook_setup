@@ -100,6 +100,37 @@ optional arguments:
     parser.add_argument('name', nargs='?')
     return parser
 
+def parse_app_name():
+    # Attempt to get the tool app name from the TOOLDIR or SUBMIT_APPLICATION_REVISION name,
+    # fallback to the application title under $SESSIONDIR/resources if environemnt variables
+    # not found. If no application title can be pulled, fallback value is "unknown"
+    try:
+        tooldir=os.environ['TOOLDIR']
+        match = re.search(r'\/apps\/([a-zA-Z0-9]+)\/r[0-9]+', tooldir)
+        # Return app name from match group if match is found
+        if match is not None:
+            return match.group(1)
+    except KeyError:
+        print('parse_app_name: (Warning) Unable to find tool directory')
+
+    try:
+        app_revision=os.environ['SUBMIT_APPLICATION_REVISION']
+        match = re.search(r'([a-zA-Z0-9]+)_r[0-9]+', app_revision)
+        # Return app name from match group if match is found
+        if match is not None:
+            return match.group(1)
+    except KeyError:
+        print('parse_app_name: (Warning) Unable to find submit application revision')
+
+    sessiondir = os.environ["SESSIONDIR"]
+    fn = os.path.join(sessiondir, "resources")
+    app='unknown'
+    with open(fn, "r") as f:
+        res = f.read()
+    for line in res.split("\n"):
+        if line.startswith("application_name"):
+           app = line.split(" ", 1)[1].replace('"', "").replace(" ", "_")
+    return app
 
 def get_session():
     try:
@@ -287,6 +318,8 @@ def find_header(file):
         pass
     return found
 
+# Retrieve the application name and add it to the "Report a problem" URL
+app_name = parse_app_name()
 
 header_template = """
 /** HEADER 8 **/
@@ -363,8 +396,9 @@ require(["jquery", "base/js/namespace", "base/js/dialog"],
 
         var term = document.getElementById("login_widget");
         var url = `https://${host}/tools/anonymous/stop?sess=${session}`;
+        var appname = '""" + app_name + """';
 
-        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${lhost}.org/feedback/report_problems')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
+        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${lhost}.org/feedback/report_problems?group=app-${appname}')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
 
         try {
             var quit = document.getElementById("shutdown");
