@@ -396,8 +396,9 @@ require(["jquery", "base/js/namespace", "base/js/dialog"],
 
         var term = document.getElementById("login_widget");
         var url = `https://${host}/tools/anonymous/stop?sess=${session}`;
+        var appname = '""" + app_name + """';
 
-        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${lhost}.org/feedback/report_problems?group=app-${app_namename}')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
+        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${lhost}.org/feedback/report_problems?group=app-${appname}')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
 
         try {
             var quit = document.getElementById("shutdown");
