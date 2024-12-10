@@ -180,7 +180,9 @@ def make_new(args):
     print("script:%s - %s" % (script, instpath))
     if not os.path.isfile(script):
         print("Downloading", script)
-        os.system("curl -O https://repo.continuum.io/archive/%s" % script)
+        # The url changed, bet we couldn't get redirected:
+        # os.system("curl -O https://repo.continuum.io/archive/%s" % script)
+        os.system("curl -O https://repo.anaconda.com/archive/%s" % script)
         if not os.path.isfile(script):
             print("Error: %s not found and could not download." % script)
             sys.exit(1)
