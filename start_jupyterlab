@@ -28,8 +28,7 @@ import argparse
 import json
 from subprocess import call, Popen, check_output
 
-EXAMPLES = '/apps/share64/debian10/anaconda/examples'
-
+anacondaHome = os.path.dirname(os.path.dirname(os.path.realpath(os.path.abspath(__file__))))
 
 def handler(signum, frame):
     pass
@@ -128,8 +127,8 @@ def run_notebook(args):
     p_path, p_url = get_proxy_addr()
     cmdlist = [
               "jupyter", "lab", "--no-browser", "--port=8000",
-              "--ip=0.0.0.0",
-              '--NotebookApp.base_url="%s"' % p_path
+                                "--ip=0.0.0.0",
+                                '--NotebookApp.base_url=%s' % (p_path)
               ]
 
     if args.debug:
@@ -143,8 +142,11 @@ def run_notebook(args):
 
     # If invoked by system, display logo for screenshots
     if not workspace:
-        Popen(['xview',  '-fit', '-fullscreen',
-              '%s/images/jupyter.gif' % EXAMPLES])
+        try:
+            Popen(['xview','-fit','-fullscreen',
+                           os.path.join(anacondaHome,'share','jupyter','static','jupyter.gif')])
+        except:
+            pass
 
     # having DISPLAY set breaks notebook terminals
     os.environ['DISPLAY'] = ""
@@ -169,3 +171,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
