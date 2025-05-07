@@ -394,7 +394,7 @@ require(["jquery", "base/js/namespace", "base/js/dialog"],
         var url = `https://${host}/tools/anonymous/stop?sess=${session}`;
         var appname = '""" + app_name + """';
         console.log(appname);
-        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${host}/feedback/report_problems?group=app-${appname}')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
+        term.innerHTML = `<button class="btn btn-sm navbar-btn" title="Report a problem" onclick="window.open('https://${lhost}.org/feedback/report_problems?group=app-${appname}')">Submit a ticket</button>&nbsp;&nbsp;<button class="btn btn-sm navbar-btn" title="Terminate this notebook or tool and any others in the session" onclick="window.location.href='${url}'">Terminate Session</button>`;
 
         try {
             var quit = document.getElementById("shutdown");
@@ -471,7 +471,7 @@ def write_custom():
     t = Template(header_template)
 # hub_session_container
     host = os.uname()[1]
-    host = host.split('_')[0]
+    host = host.split('-')[0]
     uid = os.getuid()
     with open(cjs, 'w') as f:
         f.write(t.safe_substitute(uid=uid, shost=host, lhost=host.lower()))
