@@ -60,7 +60,7 @@
 
 ## Allow password to be changed at login for the notebook server.
 #  
-#  While loggin in with a token, the notebook server UI will give the opportunity
+#  While logging in with a token, the notebook server UI will give the opportunity
 #  to the user to enter a new password at the same time that will replace the
 #  token login mechanism.
 #  
@@ -205,8 +205,8 @@
 #  MathJax, for example:  /static/components/MathJax/MathJax.js
 #c.NotebookApp.mathjax_url = ''
 
-## Dict of Python modules to load as notebook server extensions.Entry values can
-#  be used to enable and disable the loading ofthe extensions. The extensions
+## Dict of Python modules to load as notebook server extensions. Entry values can
+#  be used to enable and disable the loading of the extensions. The extensions
 #  will be loaded in alphabetical order.
 #c.NotebookApp.nbserver_extensions = {}
 
@@ -214,7 +214,7 @@
 #c.NotebookApp.notebook_dir = ''
 
 ## Whether to open in a browser after starting. The specific browser used is
-#  platform dependent and determined by the python standard library `webbrowser`
+#  platform dependent and determined by the Python standard library `webbrowser`
 #  module, unless it is overridden using the --browser (NotebookApp.browser)
 #  configuration option.
 #c.NotebookApp.open_browser = True
@@ -229,7 +229,7 @@
 #c.NotebookApp.password = ''
 
 ## Forces users to use a password for the Notebook server. This is useful in a
-#  multi user environment, for instance when everybody in the LAN can access each
+#  multi-user environment, for instance when everybody in the LAN can access each
 #  other's machine through ssh.
 #  
 #  In such a case, server the notebook server on localhost is not secure since
@@ -616,8 +616,8 @@
 #  log : logging.Logger
 
 ## By default notebooks are saved on disk on a temporary file and then if
-#  succefully written, it replaces the old ones. This procedure, namely
-#  'atomic_writing', causes some bugs on file system whitout operation order
+#  successfully written, it replaces the old ones. This procedure, namely
+#  'atomic_writing', causes some bugs on file systems without operation order
 #  enforcement (like some networked fs). If set to False, the new notebook is
 #  written directly on the old one which could fail (eg: full filesystem or quota
 #  )
