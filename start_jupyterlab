@@ -77,7 +77,7 @@ def get_session():
         return session, sessiondir
 
     # something went wrong. restore environment variables
-    psout = check_output(['ps', 'auxwwe']).split('\n')
+    psout = check_output(['ps', 'auxwwe']).decode().split('\n')
     for line in psout:
         ind = line.find('SESSIONDIR')
         if ind > 0:

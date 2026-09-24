@@ -1,7 +1,7 @@
 # install nbnovnc
-if [ ! -d "/apps/share64/debian7/noVNC" ]; then
-    git clone https://github.com/novnc/noVNC.git /apps/share64/debian7/noVNC
-    git clone https://github.com/novnc/websockify /apps/share64/debian7/noVNC/utils/websockify
+if [ ! -d "/apps/share64/rocky10/noVNC" ]; then
+    git clone https://github.com/novnc/noVNC.git /apps/share64/rocky10/noVNC
+    git clone https://github.com/novnc/websockify /apps/share64/rocky10/noVNC/utils/websockify
 fi
 
 # install special nbnovnc for hubs

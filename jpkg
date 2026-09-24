@@ -24,6 +24,19 @@ We also add our custom jupyter hub code to the jupyter configs.  All our configu
 and extensions are added to the anaconda subdirectory.
 """
 
+# Rocky Linux 10 host prerequisites:
+#   dnf install -y which bzip2 tar xz curl git patch findutils procps-ng acl glibc-langpack-en python-unversioned-command
+# (octave is available from EPEL, which needs CRB enabled: dnf install epel-release && crb enable)
+
+
+def run(cmd):
+    """Run cmd with /bin/sh and exit if it fails."""
+    ret = os.system(cmd)
+    if ret:
+        status = ret >> 8 if os.WIFEXITED(ret) else ret
+        print("Error: command failed with status %d:\n  %s" % (status, cmd))
+        sys.exit(1)
+
 
 def check_perm(p):
     """In each installation directory, check the permissions of files so
@@ -36,13 +49,13 @@ def check_perm(p):
     bindir = os.path.join(p, 'bin')
 
     print("Finding and fixing files that are not world-readable")
-    os.system('find . ! -perm -004 -exec chmod a+r {} \;')
+    os.system(r'find . ! -perm -004 -exec chmod a+r {} \;')
 
     print("Finding non-searchable directories.  Should be none.")
     os.system('find . -type d -a ! -perm -011')
 
     print('Finding and fixing world-writable files.')
-    os.system('find -L . -perm -o+w -exec chmod o-w {} \;')
+    os.system(r'find -L . -perm -o+w -exec chmod o-w {} \;')
 
     os.chdir(cwd)
 
@@ -163,7 +176,7 @@ def write_start_scripts(dirname,
 
 """
 
-    start_jupyter_main_themes = """    doThemes = False
+    start_jupyter_main_themes = r"""    doThemes = False
     checkForThemes = False
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
@@ -229,19 +242,37 @@ def make_new(args):
         print("Themes: %s" % (args.themes))
     print()
 
+    configs = ['base_conda_' + args.ver, 'base_pip_' + args.ver]
+    if args.with_nanohub:
+        configs += ['nanohub_conda_' + args.ver, 'nanohub_pip_' + args.ver]
+    if args.with_ml:
+        configs.append('ml_' + args.ver)
+    if args.with_py2:
+        configs.append('python2_' + args.ver)
+    if args.with_r:
+        configs.append('r_' + args.ver)
+    if args.with_vnc:
+        configs.append('nbnovnc')
+    missing = [os.path.join('configs', c) for c in configs
+               if not os.path.isfile(os.path.join(dirname, 'configs', c))]
+    if missing:
+        print("Error: version %s has no config for the selected options: %s"
+              % (args.ver, ', '.join(missing)))
+        sys.exit(1)
+
     env_dir = args.envdir
     script = get_scriptname(args.ver)
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
     print("script:%s - %s" % (script, instpath))
     if not os.path.isfile(script):
         print("Downloading", script)
-        os.system("curl -O https://repo.continuum.io/archive/%s" % script)
+        run("curl -f -L -O https://repo.continuum.io/archive/%s" % script)
         if not os.path.isfile(script):
             print("Error: %s not found and could not download." % script)
             sys.exit(1)
 
     print("Installing anaconda-%s in %s" % (args.ver, instpath))
-    os.system('bash ' + script + ' -b -p ' + instpath)
+    run('bash ' + script + ' -b -p ' + instpath)
 
     bindir = os.path.join(instpath, 'bin')
 
@@ -251,25 +282,25 @@ def make_new(args):
 
     cmd = '. ' + os.path.join(dirname, 'configs', 'base_conda_' + args.ver)
     print("********\n%s\n********" % cmd)
-    os.system(cmd)
+    run('set -e; ' + cmd)
     if args.with_nanohub:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_conda_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     cmd = '. ' + os.path.join(dirname, 'configs', 'base_pip_' + args.ver)
     print("********\n%s\n********" % cmd)
-    os.system(cmd)
+    run('set -e; ' + cmd)
 
     if args.with_nanohub:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_pip_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_ml:
         cmd = '. ' + os.path.join(dirname, 'configs', 'ml_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     # if args.desktop:
     #     cmd = '. ' + os.path.join(dirname, 'configs', 'desktop_' + args.ver)
@@ -279,17 +310,17 @@ def make_new(args):
     if args.with_py2:
         cmd = '. ' + os.path.join(dirname, 'configs', 'python2_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_r:
         cmd = '. ' + os.path.join(dirname, 'configs', 'r_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if not args.no_notebooks:
         write_start_scripts(dirname,
@@ -369,60 +400,6 @@ def make_update(args):
     cleanup(instpath, args.desktop)
 
 
-def do_downloads(ver):
-    ret = os.system("wget http://packages.hubzero.org/blobs/anaconda-%s.tar.xz -O - | tar -xJ" % ver)
-    if ret:
-        print("Download failed.")
-        sys.exit(1)
-
-
-def make_netinst(args):
-    do_downloads(args.ver)
-
-    instpath = os.path.realpath('anaconda-%s' % (args.ver))
-
-    # write env modules
-    write_env(args.ver, args.envdir, pathlist)
-
-    if args.nopy2:
-        # remove python2 kernel from menu
-        kpath = os.path.join(instpath,"share","jupyter","kernels","python2")
-        os.system("mv %s/kernel.json %s/kernel.json.disabled" % (kpath, kpath))
-
-    try:
-        check_output("octave --version", shell=True)
-        octave = True
-    except:
-        octave = False
-    if octave is False:
-        print("Could not find octave.  Disabling octave kernel in menu.")
-        kpath = os.path.join(instpath,"share","jupyter","kernels","octave")
-        os.system("mv %s/kernel.json %s/kernel.json.disabled" % (kpath, kpath))
-
-    hostimage = os.uname()[1].lower() + '.png'
-    imagedir = os.path.join(instpath,"share","jupyter","static")
-    hifull = os.path.join(imagedir, hostimage)
-    hzfull = os.path.join(imagedir, 'hubzero.png')
-    if not os.path.isfile(hifull):
-        print("WARNING:")
-        print("This installation will put an image representing your host in the Jupyter menubar.")
-        print("No image for your host, \"%s\" could be found." % os.uname()[1].lower())
-        print("This installation process will use a default hubzero image instead.")
-        print("To update the image, copy a PNG image of your choice to")
-        print(hifull)
-        print()
-        os.system('cp %s %s' % (hzfull, hifull))
-
-def do_install(desktop, cname, env_dir, instpath, nopy2):
-    install_updates(cname, instpath, nopy2)
-    install_kernels(instpath, nopy2)
-    install_octave(instpath, env_dir, desktop)
-    install_R_pkgs(instpath)
-    install_extensions(instpath, desktop)
-    check_perm(instpath)
-    cleanup(instpath, desktop)
-
-
 def make_cleanup(args):
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
     check_perm(instpath)
@@ -435,9 +412,9 @@ def find_octave(pypath, desktop, env_dir, prompt=True):
 
     if desktop:
         try:
-            oc = check_output("octave --version", shell=True).split('\n')[0]
+            oc = check_output("octave --version", shell=True).decode().split('\n')[0]
             ver = oc.split()[-1]
-            opath = check_output("which octave", shell=True).strip()
+            opath = check_output("which octave", shell=True).decode().strip()
         except:
             if prompt:
                 print("\nWARNING: Octave not found.  You may want to install it.")
@@ -456,7 +433,7 @@ def find_octave(pypath, desktop, env_dir, prompt=True):
         return s.substitute(d)
 
     try:
-        olist = check_output("ls %s/octave*" % env_dir, shell=True).split()
+        olist = check_output("ls %s/octave*" % env_dir, shell=True).decode().split()
     except:
         if prompt:
             print("\nWARNING: No octave module was found.")
@@ -493,7 +470,7 @@ if __name__ == '__main__':
     if patternMatch:
         installOS = patternMatch.group(1)
     else:
-        installOS = 'debian10'
+        installOS = 'rocky10'
     installEnvDir = os.path.join(os.sep,'apps','share64',installOS,'environ.d')
 
     # at least one install fails if this is not set
@@ -526,11 +503,6 @@ if __name__ == '__main__':
     parser_install = subparsers.add_parser('update')
     parser_install.add_argument('ver', type=str)
     parser_install.set_defaults(func=make_update)
-
-    # create the parser for the "netinst" command
-    parser_up = subparsers.add_parser('netinst')
-    parser_up.add_argument('ver', type=str)
-    parser_up.set_defaults(func=make_netinst)
 
     # create the parser for the "fix" command
     parser_fix = subparsers.add_parser('cleanup')
