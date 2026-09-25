@@ -262,7 +262,7 @@ class FakeInstall(object):
                 f.write('#ver=%s\n' % installer)
             f.write(body)
 
-    def installer(self, body='mkdir -p "$3/bin"\n'):
+    def installer(self, body='mkdir -p "$3/bin" "$3/compiler_compat" && ln -s ../bin/old-ld "$3/compiler_compat/ld"\n'):
         with open('fake-installer.sh', 'w') as f:
             f.write(body)
 
@@ -339,6 +339,8 @@ class TestInstallErrors(FakeInstall, unittest.TestCase):
         self.assertIsNone(code, out)
         self.assertEqual(self.order(), ['base_conda', 'base_pip', 'r'])
         self.assertTrue(os.path.isdir(os.path.join(self.tmp, 'anaconda-T', 'bin')))
+        # Anaconda's linker can't link against Rocky 10's glibc; make_new removes it
+        self.assertFalse(os.path.lexists(os.path.join(self.tmp, 'anaconda-T', 'compiler_compat', 'ld')))
 
 
 class LauncherTests(object):

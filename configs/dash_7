@@ -6,6 +6,6 @@ pip install -U --upgrade-strategy only-if-needed dash-core-components
 pip install -U --upgrade-strategy only-if-needed dash-daq
 pip install -U --upgrade-strategy only-if-needed dash-cytoscape
 pip install -U --upgrade-strategy only-if-needed jupyterlab-dash
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab-dash
+NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install "jupyterlab-dash@<0.5"
 
 #jupyter-plotly-dash FIXME still uses nbserverproxy

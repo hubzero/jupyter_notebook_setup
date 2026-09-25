@@ -25,7 +25,7 @@ and extensions are added to the anaconda subdirectory.
 """
 
 # Rocky Linux 10 host prerequisites:
-#   dnf install -y which bzip2 tar xz curl git patch findutils procps-ng acl glibc-langpack-en python-unversioned-command
+#   dnf install -y which bzip2 tar xz curl git patch findutils procps-ng acl glibc-langpack-en python-unversioned-command gcc
 # (octave is available from EPEL, which needs CRB enabled: dnf install epel-release && crb enable)
 
 
@@ -273,6 +273,12 @@ def make_new(args):
 
     print("Installing anaconda-%s in %s" % (args.ver, instpath))
     run('bash ' + script + ' -b -p ' + instpath)
+
+    # Anaconda's linker (compiler_compat/ld) can't read the .relr.dyn sections in Rocky 10's glibc, so
+    # pip can't build C extensions with it.  Without it, gcc uses the system linker.
+    ld = os.path.join(instpath, 'compiler_compat', 'ld')
+    if os.path.lexists(ld):
+        os.remove(ld)
 
     bindir = os.path.join(instpath, 'bin')
 
