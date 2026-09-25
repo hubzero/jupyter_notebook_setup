@@ -25,7 +25,7 @@ and extensions are added to the anaconda subdirectory.
 """
 
 # Rocky Linux 10 host prerequisites:
-#   dnf install -y which bzip2 tar xz curl git patch findutils procps-ng acl glibc-langpack-en python-unversioned-command gcc
+#   dnf install -y which bzip2 tar curl git findutils procps-ng glibc-langpack-en python-unversioned-command gcc
 # (octave is available from EPEL, which needs CRB enabled: dnf install epel-release && crb enable)
 
 

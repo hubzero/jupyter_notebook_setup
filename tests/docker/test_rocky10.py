@@ -82,10 +82,10 @@ class TestPlatform(unittest.TestCase):
                 self.assertEqual(run(['rpm', '-q', pkg]).returncode, 0, pkg)
 
     def test_commands_used_by_the_scripts(self):
-        # which: find_octave, configs/r_7.  setfacl: nbextensions/inboxes.py.
+        # which: find_octave, configs/r_7.  gcc: packages with no Python 3.8 wheel.
         # python: the '#!/usr/bin/env python' shebangs.  bzip2: the Anaconda installer.
-        for cmd in ('which', 'bzip2', 'tar', 'xz', 'curl', 'git', 'patch',
-                    'find', 'ps', 'setfacl', 'python', 'octave'):
+        for cmd in ('which', 'bzip2', 'tar', 'curl', 'git', 'find', 'ps', 'gcc',
+                    'python', 'octave'):
             with self.subTest(cmd=cmd):
                 self.assertIsNotNone(shutil.which(cmd), cmd)
 

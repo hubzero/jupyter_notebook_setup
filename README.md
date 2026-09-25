@@ -19,7 +19,7 @@ On a stock Rocky Linux 10.2 container, the result was checked end to end:
 ## Host prerequisites (Rocky Linux 10)
 
 ```sh
-dnf install -y which bzip2 tar xz curl git patch findutils procps-ng acl glibc-langpack-en python-unversioned-command gcc
+dnf install -y which bzip2 tar curl git findutils procps-ng glibc-langpack-en python-unversioned-command gcc
 # optional, for the octave kernel:
 dnf install -y epel-release && crb enable && dnf install -y octave
 ```
@@ -29,7 +29,6 @@ Why each package is needed:
 - `python-unversioned-command` provides `/usr/bin/python`, which the `#!/usr/bin/env python` scripts
   need.
 - `gcc` builds the packages that have no Python 3.8 wheel: GPy, cymysql and mysqlclient.
-- `acl` provides `setfacl`, used by `nbextensions/inboxes.py`.
 - `glibc-langpack-en` provides the `en_US.UTF-8` locale that `jpkg` sets.
 
 The same list is kept in the comment at the top of `jpkg`. The Docker tests read it from there.
