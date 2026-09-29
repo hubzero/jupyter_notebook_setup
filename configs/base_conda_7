@@ -1,8 +1,8 @@
 #ver=Anaconda3-2020.11-Linux-x86_64.sh
 conda update -y --all
 conda install -y tornado
-conda install -y nodejs
-npm install -g npm
+conda install -y nodejs=12.4 -c defaults -c conda-forge
+npm install -g npm@6
 conda install -y mysql=5.7.24
 conda install -y pymysql=1.0.2
 conda install -y bokeh=2.4.1
@@ -14,9 +14,12 @@ conda install -y rdkit=2019.09.3 -c defaults -c conda-forge
 conda install -y ffmpeg=4.2.2  -c defaults -c conda-forge
 conda install -y pint=0.18  -c defaults -c conda-forge
 conda install -y qgrid=1.3.1  -c defaults -c conda-forge
-jupyter labextension install @jupyter-widgets/jupyterlab-manager
-jupyter labextension install qgrid
-conda install -y oct2py=5.2.0  -c defaults -c conda-forge
+# The JupyterLab 3 widget manager comes from jupyterlab_widgets, installed with ipywidgets in base_pip_7.
+# qgrid: no JupyterLab 3 extension exists.  The newest npm release (1.1.1, 2018) needs
+# @jupyter-widgets/base ^1.
+#jupyter labextension install qgrid
+# without the cap, oct2py pulls in ipyparallel 8.6, whose JupyterLab extension needs JupyterLab >= 3.6.3
+conda install -y oct2py=5.2.0 "ipyparallel<8.5"  -c defaults -c conda-forge
 conda install -y celery=5.0.5  -c defaults -c conda-forge
 conda install -y gmaps=0.9.0  -c defaults -c conda-forge
 conda install -y ipyleaflet=0.14.0  -c defaults -c conda-forge

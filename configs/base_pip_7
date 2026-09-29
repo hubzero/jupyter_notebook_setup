@@ -1,14 +1,23 @@
 # PIP packages
-pip install -U --upgrade-strategy only-if-needed black
+# Anaconda 2020.11's pip 20.2 doesn't fall back to older releases when the newest one can't install.
+# pip 24.1 and later refuse the non-standard version of Anaconda's pyodbc (4.0.0-unsupported).
+pip install -U "pip<24.1"
+# black 22.1 and later need click 8, which breaks celery 5.0.5 (click < 8)
+pip install -U --upgrade-strategy only-if-needed "black>=21.12b0,<22.1"
 pip install -U --upgrade-strategy only-if-needed scikit-video
 pip install -U --upgrade-strategy only-if-needed yamlmagic
 pip install -U --upgrade-strategy only-if-needed mapboxgl
-pip install -U --upgrade-strategy only-if-needed moviepy
+# moviepy 2.x needs numpy >= 1.25, which has no Python 3.8 release
+pip install -U --upgrade-strategy only-if-needed "moviepy<2"
 #pip install -U --upgrade-strategy only-if-needed papermill
-pip install -U --upgrade-strategy only-if-needed nteract-scrapbook
-pip install -U --upgrade-strategy only-if-needed git+https://github.com/SheffieldML/GPy.git
-pip install -U --upgrade-strategy only-if-needed cymysql
-pip install -U --upgrade-strategy only-if-needed mysqlclient
+# nteract-scrapbook pulls in a newer traitlets; notebook 6.4 crashes at startup with traitlets 5.10 and later
+pip install -U --upgrade-strategy only-if-needed nteract-scrapbook "traitlets<5.10"
+# GPy from GitHub now needs numpy >= 2 (Python >= 3.10); 1.12 is the last release for Python 3.8 (built with gcc)
+pip install -U --upgrade-strategy only-if-needed "GPy<1.13"
+# cymysql 1.1 and later use Python 3.9 syntax without declaring it
+pip install -U --upgrade-strategy only-if-needed "cymysql<1.1"
+# mysqlclient 2.2 and later find the MySQL library only through pkg-config; 2.1 uses mysql_config from conda's mysql
+pip install -U --upgrade-strategy only-if-needed "mysqlclient<2.2"
 pip install -U --upgrade-strategy only-if-needed sshtunnel
 pip install -U --upgrade-strategy only-if-needed graphviz
 pip install -U --upgrade-strategy only-if-needed RISE
@@ -16,7 +25,8 @@ pip install -U --upgrade-strategy only-if-needed RISE
 # dev tools
 pip install -U --upgrade-strategy only-if-needed cookiecutter
 pip install -U --upgrade-strategy only-if-needed flake8
-pip install -U --upgrade-strategy only-if-needed sphinx
+# sphinx pulls in Jinja2 3.1, which removed contextfilter; notebook 6.4's nbconvert templates still use it
+pip install -U --upgrade-strategy only-if-needed sphinx "jinja2<3.1"
 pip install -U --upgrade-strategy only-if-needed punch.py
 pip install -U --upgrade-strategy only-if-needed watchdog
 pip install -U --upgrade-strategy only-if-needed tox
@@ -25,37 +35,48 @@ pip install -U --upgrade-strategy only-if-needed pytest
 pip install -U --upgrade-strategy only-if-needed pytest-cov
 
 
-pip install -U --upgrade-strategy only-if-needed appmode
+# appmode 1.0 and later have no classic Notebook server extension (1.1+ also pulls in nbclassic 1.x)
+pip install -U --upgrade-strategy only-if-needed "appmode<1"
 jupyter nbextension     enable --py --sys-prefix appmode
 jupyter serverextension enable --py --sys-prefix appmode
 pip install -U --upgrade-strategy only-if-needed hublib
-pip install -U --upgrade-strategy only-if-needed ipysheet
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install ipysheet
+# ipywidgets 7 brings jupyterlab_widgets 1.x, the widget manager for JupyterLab 3; ipysheet 0.5 needs ipywidgets < 8
+pip install -U --upgrade-strategy only-if-needed "ipywidgets>=7.6,<8"
+pip install -U --upgrade-strategy only-if-needed "ipysheet<0.6"
 pip install -U --upgrade-strategy only-if-needed pscript
 pip install -U --upgrade-strategy only-if-needed jp_proxy_widget
 jupyter nbextension enable --py --sys-prefix jp_proxy_widget
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jp_proxy_widget
-pip install -U --upgrade-strategy only-if-needed jupyterlab_iframe
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab_iframe
+NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install "jp_proxy_widget@<2"
+# jupyterlab_iframe 0.4.3 and later need JupyterLab >= 3.3; the 0.4.2 wheel has no lab extension, so build it from npm
+pip install -U --upgrade-strategy only-if-needed "jupyterlab_iframe<0.4.3"
+NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install "jupyterlab_iframe@<0.4.3"
 jupyter serverextension enable --py jupyterlab_iframe
-pip install -U --upgrade-strategy only-if-needed jupyterlab-latex
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/latex
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/geojson-extension
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/vega3-extension
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyter-matplotlib
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/mp4-extension
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab-chart-editor
-# merged into 1.0a
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @mflevine/jupyterlab_html
+pip install -U --upgrade-strategy only-if-needed "jupyterlab-latex<4"
+pip install -U --upgrade-strategy only-if-needed jupyterlab-geojson
+pip install -U --upgrade-strategy only-if-needed jupyterlab-vega3
+pip install -U --upgrade-strategy only-if-needed ipympl
+# @jupyterlab/mp4-extension: no JupyterLab 3 version.  Its only release (0.1.0, 2018) is for JupyterLab 0.x.
+#NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/mp4-extension
+# jupyterlab-chart-editor: 4.14.3 supports JupyterLab 3, but its dependencies now pull in
+# @mapbox/jsonlint-lines-primitives, which requires Node >= 22, so the build fails with Node 12.4.
+#NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab-chart-editor
+# @mflevine/jupyterlab_html: no JupyterLab 3 version (last release 0.1.4, 2018).
+# JupyterLab 3 has a built-in HTML viewer (@jupyterlab/htmlviewer-extension).
+#NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @mflevine/jupyterlab_html
 
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab-spreadsheet
+# jupyterlab-spreadsheet 0.4.1 needs @lumino/widgets ^1.23; JupyterLab 3.2.1 has 1.19
+NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install "jupyterlab-spreadsheet@<0.4.1"
 
 pip install -U --upgrade-strategy only-if-needed floatview
-pip install -U --upgrade-strategy only-if-needed plotly
+# plotly 5 bundles the JupyterLab extension (jupyterlab-plotly), which replaces plotlywidget
+pip install -U --upgrade-strategy only-if-needed "plotly<6"
 pip install -U --upgrade-strategy only-if-needed plotly_express
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/plotly-extension
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install plotlywidget
-NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab-floatview
+# @jupyterlab/plotly-extension: no JupyterLab 3 version (last release 1.0.0, 2019).
+# plotly's bundled jupyterlab-plotly renders plotly output instead.
+#NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install @jupyterlab/plotly-extension
+# jupyterlab-floatview: the npm package stops at 0.3.1 (JupyterLab 2); the pip floatview package above
+# (0.4.1) bundles the JupyterLab 3 extension.
+#NODE_OPTIONS=--max-old-space-size=16384 jupyter labextension install jupyterlab-floatview
 
 # Jupyter Snippets Menu
 git clone https://github.com/martin-hunt/jupyter_snippets.git /tmp/jupyter_snippets

@@ -140,7 +140,7 @@ def get_session():
         return session, sessiondir
 
     # something went wrong. restore environment variables
-    psout = check_output(['ps', 'auxwwe']).split('\n')
+    psout = check_output(['ps', 'auxwwe']).decode().split('\n')
     for line in psout:
         ind = line.find('SESSIONDIR')
         if ind > 0:
@@ -216,7 +216,7 @@ def find_notebook(name, tool, copyNotebooks, arglist):
     realPath = os.path.realpath(os.path.abspath(tool))
     call("cp -sRf %s/* %s" % (realPath,tdest), shell=True)
     if copyNotebooks:
-        call("""( cd %s; find ./ -name "*.ipynb" -exec /bin/cp --remove-destination {} %s/{} \; )""" % (realPath,tdest),shell=True)
+        call(r"""( cd %s; find ./ -name "*.ipynb" -exec /bin/cp --remove-destination {} %s/{} \; )""" % (realPath,tdest),shell=True)
 
     # notebook will be either relative to the tool
     # directory or in the bin directory
