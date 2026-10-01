@@ -55,7 +55,8 @@ def check_perm(p):
     os.system('find . -type d -a ! -perm -011')
 
     print('Finding and fixing world-writable files.')
-    os.system(r'find -L . -perm -o+w -exec chmod o-w {} \;')
+    # With -L, -type l matches only broken symlinks (conda's pkgs/ cache has many); chmod can't follow them.
+    os.system(r'find -L . -perm -o+w ! -type l -exec chmod o-w {} \;')
 
     os.chdir(cwd)
 

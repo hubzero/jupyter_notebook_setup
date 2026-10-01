@@ -66,7 +66,8 @@ just scrolled past in the output. Now:
 - The installer download, the installer itself, and every config file are checked. Configs are
   sourced with `set -e`, so the first failing line stops the install.
 - `update` and the helper steps are not checked. The helper steps are the extension setup and
-  `check_perm`. `check_perm`'s `find -L` reports broken symlinks, which Anaconda trees contain.
+  `check_perm`. `check_perm`'s world-writable pass (`find -L`) skips broken symlinks with
+  `! -type l`. conda's `pkgs/` cache has many of them, and `chmod` would fail on each one.
 
 Turning on these checks exposed many config lines that had been failing without anyone noticing.
 Most of the config changes below fix those lines.
