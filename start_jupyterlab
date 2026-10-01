@@ -128,7 +128,8 @@ def run_notebook(args):
     cmdlist = [
               "jupyter", "lab", "--no-browser", "--port=8000",
                                 "--ip=0.0.0.0",
-                                '--NotebookApp.base_url=%s' % (p_path)
+                                # JupyterLab 3 and 4 both run on jupyter_server
+                                '--ServerApp.base_url=%s' % (p_path)
               ]
 
     if args.debug:

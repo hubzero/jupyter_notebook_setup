@@ -1,0 +1,34 @@
+#ver=https://github.com/conda-forge/miniforge/releases/download/26.7.2-0/Miniforge3-26.7.2-0-Linux-x86_64.sh
+# Miniforge: conda-forge only.  Current numpy and scipy need Python >= 3.12; vtk (pyvista) has no
+# wheel or build past 3.14.
+conda update -y --all
+# tornado comes with jupyter_server.  No nodejs/npm: JupyterLab 4 extensions are prebuilt and come
+# with their pip or conda packages, so nothing here builds one with `jupyter labextension install`.
+# The required stack, in one solve so the compiled libraries (vtk, proj/geos, hdf5) stay consistent.
+# Notebook 7 has no classic server; nbclassic serves the classic UI that start_jupyter and appmode use.
+conda install -y python=3.14 numpy scipy pandas matplotlib pytables meshio imageio cartopy cmcrameri autograd pyvista jupyterlab notebook nbclassic ipywidgets widgetsnbextension
+# burnman is not on conda-forge (base_pip_8 installs it); these are its dependencies.  Without conda's
+# numba, pip would try to build an old numba from source.
+conda install -y numba cvxpy sympy
+conda install -y mysql
+# pip's mysqlclient finds conda's MySQL library through pkg-config (conda-forge's own mysqlclient lags
+# behind and pulls mysql back a release)
+conda install -y pkg-config
+conda install -y pymysql
+# without the floor conda picks dask 2023.3 (and bokeh 2.4) instead of downgrading hdf5 2.x to 1.14,
+# which current pyarrow still needs
+conda install -y "dask>=2026.8" bokeh
+conda install -y rdkit
+conda install -y ffmpeg
+conda install -y pint
+# qgrid: dropped.  Its last release (1.3.1, 2020) needs ipywidgets 7 and widgetsnbextension 3.
+#conda install -y qgrid
+conda install -y oct2py ipyparallel
+conda install -y celery
+# gmaps: dropped.  0.9.0 (2019), the last release, ships only a source lab extension for
+# @jupyter-widgets/base 2 (ipywidgets 7.5, JupyterLab <= 2); ipywidgets 8 uses base 6.
+#conda install -y gmaps
+conda install -y ipyleaflet
+conda install -y bagit
+conda install -y fftw
+conda install -y nbsphinx

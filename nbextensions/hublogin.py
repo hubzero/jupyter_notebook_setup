@@ -1,8 +1,20 @@
 import os
 import glob
 import binascii
-from notebook.base.handlers import IPythonHandler, AuthenticatedHandler
-from notebook.utils import url_unescape, url_escape
+from importlib.metadata import version
+
+# With Notebook 7, nbclassic's import shims still answer `import notebook.base.handlers`, so check the
+# version rather than whether the import works.
+if int(version('notebook').split('.')[0]) < 7:
+    from notebook.base.handlers import IPythonHandler, AuthenticatedHandler
+    from notebook.utils import url_unescape, url_escape
+else:
+    # Notebook 7 has no server of its own; nbclassic and JupyterLab run on jupyter_server.  Its
+    # LegacyIdentityProvider also calls get_login_available, should_check_origin and
+    # is_token_authenticated on the login handler class, which LegacyLoginHandler provides.
+    from jupyter_server.auth.login import LegacyLoginHandler as IPythonHandler
+    from jupyter_server.base.handlers import AuthenticatedHandler
+    from jupyter_server.utils import url_unescape, url_escape
 
 """
 Basic authentication using a cookie set by the hub when the jupyter

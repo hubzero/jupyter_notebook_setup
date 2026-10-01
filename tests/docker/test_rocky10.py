@@ -331,6 +331,27 @@ class TestInstallErrors(FakeInstall, unittest.TestCase):
         self.assertIn('status 3', out)
         self.assertEqual(self.order(), [])
 
+    def test_installer_from_url(self):
+        # '#ver=' can name the installer by URL (Miniforge for version 8); it is downloaded with curl.
+        os.mkdir('src')
+        with open(os.path.join('src', 'url-installer.sh'), 'w') as f:
+            f.write('mkdir -p "$3/bin"\n')
+        self.config('base_conda_T', 'echo base_conda >> order\n',
+                    installer='file://%s/src/url-installer.sh' % self.tmp)
+        self.config('base_pip_T', 'echo base_pip >> order\n')
+        code, out = self.make_new()
+        self.assertIsNone(code, out)
+        self.assertTrue(os.path.isfile('url-installer.sh'), 'the installer should be downloaded')
+        self.assertEqual(self.order(), ['base_conda', 'base_pip'])
+        self.assertTrue(os.path.isdir(os.path.join(self.tmp, 'anaconda-T', 'bin')))
+
+    def test_version_8_configs(self):
+        for name in ('base_conda_8', 'base_pip_8', 'r_8'):
+            with self.subTest(config=name):
+                self.assertTrue(os.path.isfile(os.path.join(REPO, 'configs', name)))
+        self.jpkg.dirname = REPO
+        self.assertTrue(self.jpkg.get_scriptname('8').startswith('https://github.com/conda-forge/miniforge/'))
+
     def test_clean_install_completes(self):
         self.installer()
         for name in ('base_conda_T', 'base_pip_T', 'r_T'):
@@ -409,6 +430,48 @@ class TestStartJupyter(LauncherTests, unittest.TestCase):
             self.assertTrue(os.path.islink(os.path.join(nb_dir, 'helper.py')))
 
 
+    def command(self, notebook, *argv):
+        """The command run_notebook would run for `start_jupyter argv` with notebook `notebook`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, 'resources'), 'w') as f:
+                f.write('hub_url https://nanohub.org\nfilexfer_port 8123\nfilexfer_cookie abcdef\n')
+            with open(os.path.join(tmp, 'tool.ipynb'), 'w') as f:
+                f.write('{}')
+            argv = [a.replace('TMP', tmp) for a in argv]
+            args = self.launcher.parse_cmd_line().parse_args(argv)
+            popen = mock.Mock()
+            popen.return_value.wait.return_value = 0
+            env = {'SESSION': '4321', 'SESSIONDIR': tmp, 'HOME': tmp}
+            with mock.patch.dict(os.environ, env), \
+                    mock.patch.object(self.launcher, 'notebook_version', return_value=notebook), \
+                    mock.patch.object(self.launcher, 'Popen', popen), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                cwd = os.getcwd()
+                try:
+                    self.launcher.run_notebook(args)
+                finally:
+                    os.chdir(cwd)
+        return popen.call_args[0][0]
+
+    def test_notebook_6_command(self):
+        cmd = self.command(6, 'TMP/tool.ipynb')
+        self.assertEqual(cmd[:2], ['jupyter', 'notebook'])
+        self.assertIn('--NotebookApp.base_url="/weber/4321/abcdef/123/"', cmd)
+        self.assertIn('--NotebookApp.default_url="notebooks/tool.ipynb"', cmd)
+
+    def test_notebook_7_runs_nbclassic(self):
+        cmd = self.command(7, 'TMP/tool.ipynb')
+        self.assertEqual(cmd[:2], ['jupyter', 'nbclassic'])
+        self.assertIn('--ServerApp.base_url="/weber/4321/abcdef/123/"', cmd)
+        # nbclassic copies its own NotebookApp.default_url over ServerApp.default_url
+        self.assertIn('--NotebookApp.default_url="nbclassic/notebooks/tool.ipynb"', cmd)
+        self.assertEqual([a for a in cmd if 'NotebookApp' in a and 'default_url' not in a], [])
+
+    def test_notebook_7_appmode(self):
+        cmd = self.command(7, '-A', 'TMP/tool.ipynb')
+        self.assertIn('--NotebookApp.default_url="apps/tool.ipynb"', cmd)
+
+
 class TestStartJupyterlab(LauncherTests, unittest.TestCase):
 
     @classmethod
@@ -447,6 +510,19 @@ class TestAnacondaDownload(unittest.TestCase):
             self.assertEqual(out.stdout.strip().splitlines()[-1], 'ok', out.stdout)
             out = run([os.path.join(instpath, 'bin', 'conda'), '--version'])
             self.assertEqual(out.returncode, 0, out.stdout)
+
+
+@unittest.skipUnless(NETWORK, 'JUPYTER_TEST_NETWORK=0')
+class TestMiniforgeDownload(unittest.TestCase):
+
+    def test_installer_url(self):
+        # Version 8 downloads Miniforge from GitHub, which redirects to its release storage.
+        jpkg = load_script('jpkg', 'jpkg')
+        jpkg.dirname = REPO
+        out = subprocess.run(['curl', '-L', '-s', '-f', '-r', '0-1023', jpkg.get_scriptname('8')],
+                             stdout=subprocess.PIPE)
+        self.assertEqual(out.returncode, 0)
+        self.assertTrue(out.stdout.startswith(b'#!/bin/sh'), out.stdout[:80])
 
 
 @unittest.skipUnless(NETWORK, 'JUPYTER_TEST_NETWORK=0')

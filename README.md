@@ -16,6 +16,9 @@ On a stock Rocky Linux 10.2 container, the result was checked end to end:
 - JupyterLab serves `/lab`, and all 14 of its extensions report `enabled OK`.
 - The `python3` and `octave` kernels both execute code.
 
+`jpkg install 8` is the opposite: a fully up-to-date stack on Miniforge (Python 3.14), JupyterLab 4
+and Notebook 7. See [Version 8](#version-8-current-releases). Version 7 is unchanged.
+
 ## Host prerequisites (Rocky Linux 10)
 
 ```sh
@@ -160,6 +163,129 @@ skipping them silently. `--with-dash` is accepted but never sources `dash_7`.
   pages. Nobody used them in a browser.
 - **`update`** was not run.
 
+## Version 8: current releases
+
+`jpkg [--with-r] install 8` (configs `base_conda_8`, `base_pip_8`, `r_8`) installs current releases of
+everything, with no version caps. These 15 packages are required, and each one is at its newest
+release:
+
+| Package | Version | | Package | Version |
+|---|---|---|---|---|
+| pyvista[jupyter] | 0.49.0 (vtk 9.7.0) | | jupyterlab | 4.6.4 |
+| imageio | 2.38.0 | | matplotlib | 3.11.2 |
+| numpy | 2.5.3 | | burnman | `main` (3.0.0a0; see below) |
+| pandas | 3.0.6 | | autograd | 1.9.1 |
+| scipy | 1.18.1 | | ipywidgets | 8.1.9 |
+| meshio | 5.3.5 | | widgetsnbextension | 4.0.16 |
+| tables | 3.11.1 | | cmcrameri | 1.10 |
+| cartopy | 0.26.0 | | | |
+
+The versions are as of 2026-10-01. Each other package from the version 7 configs was kept, at its
+current release, if it works alongside these. The ones that don't are dropped; see
+[below](#dropped-from-version-8).
+
+### What's different from 7
+
+- **Miniforge, not Anaconda.** `base_conda_8`'s `#ver=` line is the full URL of the Miniforge
+  installer (26.7.2-0). `jpkg` downloads any `#ver=` that is a URL as it is; a bare file name still
+  comes from the Anaconda archive, as for 7. Everything comes from conda-forge, so the defaults
+  channel and its terms of service are out of the picture.
+- **Python 3.14.** Current numpy and scipy need Python ≥ 3.12, and vtk has no build for 3.15.
+- **One conda solve for the required stack**, so vtk, proj/geos and hdf5 come out consistent.
+- **No Node.** JupyterLab 4 extensions are prebuilt and ship in their pip or conda packages, so no
+  config line runs `jupyter labextension install`.
+- **Notebook 7 plus nbclassic.** Notebook 7 has no classic server. nbclassic 1.3 serves the classic
+  UI on jupyter_server, under `/nbclassic/` because Notebook 7 is installed too. The parts that need
+  the classic UI keep working with it: `start_jupyter`, appmode 1.3 (`/apps/`), widgetsnbextension and
+  the nbextensions (snippets, Calysto, `prefs`).
+- **`start_jupyter`** reads the installed notebook version. With Notebook 7 it runs
+  `jupyter nbclassic` with `--ServerApp.base_url`, `--IdentityProvider.token` and
+  `--NotebookApp.default_url=nbclassic/notebooks/<nb>`. The default URL stays a `NotebookApp` option
+  because nbclassic copies its own `NotebookApp.default_url` over `ServerApp.default_url`. With
+  Notebook 6 the command is unchanged.
+- **`start_jupyterlab`** passes `--ServerApp.base_url` instead of `--NotebookApp.base_url`.
+  JupyterLab 3 and 4 both run on jupyter_server.
+- **`install_extensions`** checks whether the install has `bin/jupyter-nbextension` (7 does, 8
+  doesn't). Without it:
+  - the server settings (`trust_xheaders`, `disable_check_xsrf`, the hub's `login_handler_class`)
+    go into `etc/jupyter/jupyter_server_config.py`;
+  - the classic-UI settings stay in `jupyter_notebook_config.py`;
+  - the extensions are installed with `jupyter nbclassic-extension`.
+- **`hublogin.py`** chooses its base classes from the notebook version. It can't just try the
+  import: nbclassic's import shims answer `import notebook.base.handlers` even with Notebook 7. On
+  jupyter_server it subclasses `LegacyLoginHandler`, because jupyter_server 2's
+  `LegacyIdentityProvider` calls `get_login_available`, `should_check_origin` and
+  `is_token_authenticated` on the login handler class.
+
+### Packages that needed help
+
+| Package | What was done |
+|---|---|
+| burnman | Not on conda-forge. Its last release (2.1.0, Nov 2024) needs numpy < 2 and numba 0.59 (Python ≤ 3.12), so it installs from GitHub `main`, which supports numpy 2 and Python 3.14. Commit `0cf782d7fa` was tested. numba, cvxpy and sympy come from conda-forge first, so pip doesn't build an old numba. |
+| dask | Needs the floor `dask>=2026.8`. Without it conda picks dask 2023.3 and bokeh 2.4 instead of moving hdf5 from 2.2 back to 1.14, which current pyarrow still needs. hdf5 is therefore 1.14.6. pytables, h5py and vtk keep their versions and get rebuilt variants. |
+| mysqlclient | Built by pip against conda-forge's mysql 9.7.1, through conda-forge's `pkg-config`. conda-forge's own mysqlclient (2.2.8) would pull mysql back to 9.6. |
+| ffmpeg | 8.1.2, not 9.0.2: ffmpeg 9 would pull mysql back from 9.7.1. Neither is a required package. |
+| pyvista[jupyter] | The extra now pulls in `trame-pyvista`, which pins trame to 3.13.2 (4.0.0 is out). |
+| RISE | Replaced by `jupyterlab-rise` 0.43.1. That package pulls in `jupyterlab-mathjax3`, a JupyterLab 3 extension, and JupyterLab 4 lists it as `X` and skips it. JupyterLab 4 renders MathJax itself. |
+| jupyterlab-spreadsheet | The npm extension became pip `jupyterlab-spreadsheet-editor` 0.7.2. |
+| plotly_express | Part of plotly (7.1.0) now; the line is gone. |
+| R (`r_8`) | Same as `r_7`, but conda-forge only: r-base 4.5.3, rpy2 3.6.8. |
+
+### Dropped from version 8
+
+Each one is commented out in its config with the reason.
+
+| Package | Last release | Why it was dropped |
+|---|---|---|
+| qgrid | 1.3.1 (2020) | Needs ipywidgets 7 and widgetsnbextension 3 |
+| floatview | 0.4.1 (2023) | Needs ipywidgets 7 and widgetsnbextension 3; JupyterLab 3 extension |
+| gmaps | 0.9.0 (2019) | Only a source lab extension for `@jupyter-widgets/base` 2 (JupyterLab ≤ 2); ipywidgets 8 is base 6 |
+| ipysheet | 0.7.0 (2022) | JupyterLab 3 extension (lumino 1), which JupyterLab 4 won't load |
+| jp_proxy_widget | 1.0.10 (2021) | No JupyterLab 4 extension; widget front end needs `@jupyter-widgets/base` 2–4 |
+| scikit-video | 1.1.11 (2018) | Writes video with `ndarray.tostring`, which numpy 2 removed |
+| mapboxgl | 0.10.2 (2019) | Imports `IPython.core.display.display`, which IPython 9 removed |
+| RISE (classic) | 5.7.1 (2020) | Notebook < 7 only; replaced by `jupyterlab-rise` |
+| nodejs, npm | | Nothing builds a lab extension any more |
+| tornado (explicit line) | | Comes with jupyter_server |
+
+The JupyterLab 3 workarounds from 7 are gone too, for `jupyterlab_iframe`, `jupyterlab-latex`,
+`jupyterlab-geojson`, `jupyterlab-vega3` and `ipympl`. Their current releases support JupyterLab 4.
+`dash_7` has no `dash_8`, because `--with-dash` never sources a dash config.
+
+### Checked for version 8
+
+On the test image (stock Rocky Linux 10 plus the prerequisites), as an unprivileged user:
+
+- `jpkg --desktop --with-r install 8` completes from scratch, with exit status 0, in about 7 minutes.
+- **Required packages:** all 15 import at the versions above.
+  - pyvista renders off-screen to PNG. No system GL libraries were needed: vtk warns that there is
+    no X server and falls back by itself.
+  - cartopy draws a coastline map with `cmcrameri.cm.batlow`.
+  - burnman computes forsterite's density at 10 GPa and 1500 K.
+  - autograd takes a gradient.
+  - pandas and tables write and read HDF5.
+  - meshio and imageio write and read files.
+- **Other packages:** the kept ones import, and oct2py runs octave. `pip check` finds no broken
+  requirements.
+- **Kernels:** `python3`, `octave` and `r` are installed.
+- **JupyterLab:** every extension reports `enabled OK` except `jupyterlab-mathjax3` (see above).
+  That includes `@jupyter-widgets/jupyterlab-manager` 5.0.16, plotly, ipympl, leaflet,
+  ipyparallel, RISE, LaTeX and the spreadsheet editor.
+- **Launchers, with a faked hub session:**
+  - `start_jupyter -A tool.ipynb` redirects `/` to `…/apps/tool.ipynb`.
+  - `start_jupyter tool.ipynb` redirects `/` to `…/nbclassic/notebooks/tool.ipynb`.
+  - `/tree` and `/lab` answer under the `/weber/…/` base URL.
+  - `start_jupyterlab` serves `/lab` under that base URL.
+- **Hub login (`hublogin.py` on jupyter_server 2):**
+  - the first browser gets the `weber-auth-*` cookie;
+  - a second browser without it is redirected to `/login` ("Access Forbidden");
+  - the cookie or the URL token gets in;
+  - a wrong cookie gets 403.
+
+Not tested for 8: use in a browser, so nothing checks that widgets, trame/pyvista or the nbextensions
+render. Also not tested: the full hub (non-`--desktop`) install, `--with-vnc` (`nbnovnc`) and
+`update`.
+
 ## Tests
 
 `tests/docker/` runs the scripts in a stock `rockylinux/rockylinux:10` container. The image is built
@@ -178,11 +304,12 @@ The suite covers the following:
 - the prerequisites;
 - syntax warnings under Python 3.12;
 - octave detection;
-- the launchers' session handling;
-- `install`'s error checking, using a fake installer and fake configs.
+- the launchers' session handling, and the command `start_jupyter` builds for Notebook 6 and 7;
+- `install`'s error checking, using a fake installer and fake configs;
+- installers named by URL, the version 8 configs, and the Miniforge download.
 
-It does not run a full `install 7`, which takes over an hour. To run one by hand, using the image
-that `run-docker-test.sh` builds:
+It does not run a full `install 7`, which takes over an hour, or `install 8` (about 7 minutes). To
+run one by hand, using the image that `run-docker-test.sh` builds (`install 8` works the same way):
 
 ```sh
 docker run -d --name jt --network host jupyter-setup-rocky10-test:latest

@@ -231,10 +231,27 @@ def find_notebook(name, tool, copyNotebooks, arglist):
     return os.path.split(nb_name)
 
 
+def notebook_version():
+    """Major version of the installed notebook package, 0 if it can't be found."""
+    try:
+        from importlib.metadata import version
+        return int(version('notebook').split('.')[0])
+    except Exception:
+        return 0
+
+
 def run_notebook(args):
     global notebookProcess
 
     arglist = []
+
+    # Notebook 7 has no classic server.  nbclassic serves the classic UI on jupyter_server instead,
+    # under /nbclassic/ because Notebook 7 is installed alongside it.
+    nbclassic = notebook_version() >= 7
+    if nbclassic:
+        app, server, notebooks = 'nbclassic', 'ServerApp', 'nbclassic/notebooks'
+    else:
+        app, server, notebooks = 'notebook', 'NotebookApp', 'notebooks'
 
     if args.name is None:
         if args.tool:
@@ -248,10 +265,11 @@ def run_notebook(args):
             print("Changing directory to", nb_dir)
             os.chdir(nb_dir)
 
+        # a NotebookApp option even with nbclassic, whose NotebookApp.default_url overrides ServerApp's
         if args.app:
             arglist.append('--NotebookApp.default_url="apps/%s"' % nb_name)
         else:
-            arglist.append('--NotebookApp.default_url="notebooks/%s"' % nb_name)
+            arglist.append('--NotebookApp.default_url="%s/%s"' % (notebooks, nb_name))
 # disable ~/.local/lib/pythonX.Y/site-packages for tools
         os.environ['PYTHONNOUSERSITE'] = "yes"
 
@@ -261,14 +279,17 @@ def run_notebook(args):
 
     p_path, p_url = get_proxy_addr()
     cmdlist = [
-              "jupyter", "notebook", "--no-browser", "--port=8000",
+              "jupyter", app, "--no-browser", "--port=8000",
               "--ip=0.0.0.0",
-              '--NotebookApp.base_url="%s"' % p_path
+              '--%s.base_url="%s"' % (server, p_path)
               ]
 
     token = get_cookie()[1]
     if token:
-        cmdlist.append('--NotebookApp.token=%s' % token)
+        if nbclassic:
+            cmdlist.append('--IdentityProvider.token=%s' % token)
+        else:
+            cmdlist.append('--NotebookApp.token=%s' % token)
 
     if args.debug:
         cmdlist.append('--Application.log_level="DEBUG"')

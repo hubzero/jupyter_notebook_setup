@@ -1,0 +1,64 @@
+# PIP packages
+# --upgrade-strategy only-if-needed keeps pip from replacing the conda-forge builds (numpy, vtk, ...).
+pip install -U pip
+# burnman is not on conda-forge, and its last release (2.1.0, 2024) needs numpy < 2 and numba 0.59
+# (Python <= 3.12).  Its main branch supports numpy 2 and Python 3.14.
+pip install -U --upgrade-strategy only-if-needed git+https://github.com/geodynamics/burnman.git
+# the [jupyter] extra brings trame-pyvista, which pins trame (3.13.2 rather than 4) and its components
+pip install -U --upgrade-strategy only-if-needed "pyvista[jupyter]"
+pip install -U --upgrade-strategy only-if-needed black
+# scikit-video: dropped.  1.1.11 (2018), the last release, writes video with ndarray.tostring, which
+# numpy 2 removed.
+#pip install -U --upgrade-strategy only-if-needed scikit-video
+pip install -U --upgrade-strategy only-if-needed yamlmagic
+# mapboxgl: dropped.  0.10.2 (2019), the last release, imports IPython.core.display.display, which
+# IPython 9 removed.
+#pip install -U --upgrade-strategy only-if-needed mapboxgl
+pip install -U --upgrade-strategy only-if-needed moviepy
+pip install -U --upgrade-strategy only-if-needed nteract-scrapbook
+pip install -U --upgrade-strategy only-if-needed GPy
+pip install -U --upgrade-strategy only-if-needed cymysql
+pip install -U --upgrade-strategy only-if-needed mysqlclient
+pip install -U --upgrade-strategy only-if-needed sshtunnel
+pip install -U --upgrade-strategy only-if-needed graphviz
+# jupyterlab-rise replaces the classic RISE.  It pulls in jupyterlab-mathjax3, a JupyterLab 3
+# extension that JupyterLab 4 skips (it renders MathJax itself), so `labextension list` marks it X.
+pip install -U --upgrade-strategy only-if-needed jupyterlab-rise
+
+# dev tools
+pip install -U --upgrade-strategy only-if-needed cookiecutter
+pip install -U --upgrade-strategy only-if-needed flake8
+pip install -U --upgrade-strategy only-if-needed sphinx
+pip install -U --upgrade-strategy only-if-needed punch.py
+pip install -U --upgrade-strategy only-if-needed watchdog
+pip install -U --upgrade-strategy only-if-needed tox
+pip install -U --upgrade-strategy only-if-needed coverage
+pip install -U --upgrade-strategy only-if-needed pytest
+pip install -U --upgrade-strategy only-if-needed pytest-cov
+
+# appmode 1.x serves /apps/ under nbclassic and enables itself
+pip install -U --upgrade-strategy only-if-needed appmode
+pip install -U --upgrade-strategy only-if-needed hublib
+# ipysheet: dropped.  0.7.0 (2022), the last release, has a JupyterLab 3 extension (lumino 1) that
+# JupyterLab 4 won't load.
+#pip install -U --upgrade-strategy only-if-needed ipysheet
+pip install -U --upgrade-strategy only-if-needed pscript
+# jp_proxy_widget: dropped.  1.0.10 (2021), the last release, has no JupyterLab 4 extension, and its
+# widget front end needs @jupyter-widgets/base 2-4; ipywidgets 8 uses base 6.
+#pip install -U --upgrade-strategy only-if-needed jp_proxy_widget
+pip install -U --upgrade-strategy only-if-needed jupyterlab_iframe
+pip install -U --upgrade-strategy only-if-needed jupyterlab-latex
+pip install -U --upgrade-strategy only-if-needed jupyterlab-geojson
+pip install -U --upgrade-strategy only-if-needed jupyterlab-vega3
+pip install -U --upgrade-strategy only-if-needed ipympl
+pip install -U --upgrade-strategy only-if-needed jupyterlab-spreadsheet-editor
+# floatview: dropped.  0.4.1 (2023), the last release, needs ipywidgets 7 and widgetsnbextension 3,
+# and its lab extension is for JupyterLab 3.
+#pip install -U --upgrade-strategy only-if-needed floatview
+pip install -U --upgrade-strategy only-if-needed plotly
+
+# Jupyter Snippets Menu
+git clone https://github.com/martin-hunt/jupyter_snippets.git /tmp/jupyter_snippets
+jupyter nbclassic-extension install --sys-prefix /tmp/jupyter_snippets
+jupyter nbclassic-extension enable --sys-prefix jupyter_snippets/main
+rm -rf /tmp/jupyter_snippets
