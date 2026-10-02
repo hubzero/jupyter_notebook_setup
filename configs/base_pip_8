@@ -1,9 +1,10 @@
 # PIP packages
 # --upgrade-strategy only-if-needed keeps pip from replacing the conda-forge builds (numpy, vtk, ...).
 pip install -U pip
-# burnman is not on conda-forge, and its last release (2.1.0, 2024) needs numpy < 2 and numba 0.59
-# (Python <= 3.12).  Its main branch supports numpy 2 and Python 3.14.
-pip install -U --upgrade-strategy only-if-needed git+https://github.com/geodynamics/burnman.git
+# burnman 2.1.0 (the last release) declares numpy < 2 and numba 0.59; --no-deps skips those pins.
+# It works with numpy 2 and current numba.  Its dependencies (numba, cvxpy, sympy, scipy, matplotlib)
+# come from conda in base_conda_8.
+pip install --no-deps burnman
 # the [jupyter] extra brings trame-pyvista, which pins trame (3.13.2 rather than 4) and its components
 pip install -U --upgrade-strategy only-if-needed "pyvista[jupyter]"
 pip install -U --upgrade-strategy only-if-needed black

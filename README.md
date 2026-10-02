@@ -174,7 +174,7 @@ release:
 |---|---|---|---|---|
 | pyvista[jupyter] | 0.49.0 (vtk 9.7.0) | | jupyterlab | 4.6.4 |
 | imageio | 2.38.0 | | matplotlib | 3.11.2 |
-| numpy | 2.5.3 | | burnman | `main` (3.0.0a0; see below) |
+| numpy | 2.5.3 | | burnman | 2.1.0 (pip, `--no-deps`; see [below](#burnman-with---no-deps)) |
 | pandas | 3.0.6 | | autograd | 1.9.1 |
 | scipy | 1.18.1 | | ipywidgets | 8.1.9 |
 | meshio | 5.3.5 | | widgetsnbextension | 4.0.16 |
@@ -222,7 +222,7 @@ current release, if it works alongside these. The ones that don't are dropped; s
 
 | Package | What was done |
 |---|---|
-| burnman | Not on conda-forge. Its last release (2.1.0, Nov 2024) needs numpy < 2 and numba 0.59 (Python ≤ 3.12), so it installs from GitHub `main`, which supports numpy 2 and Python 3.14. Commit `0cf782d7fa` was tested. numba, cvxpy and sympy come from conda-forge first, so pip doesn't build an old numba. |
+| burnman | Not on conda-forge, and its last release (2.1.0, Nov 2024) declares numpy < 2 and numba 0.59 (Python ≤ 3.12). It's installed with `pip install --no-deps burnman`, so pip ignores those pins. numba (current release), cvxpy and sympy come from conda-forge. numba can't be left out: 2.1.0's no-numba fallback is broken, so `import burnman` fails without it. See [burnman with `--no-deps`](#burnman-with---no-deps). |
 | dask | Needs the floor `dask>=2026.8`. Without it conda picks dask 2023.3 and bokeh 2.4 instead of moving hdf5 from 2.2 back to 1.14, which current pyarrow still needs. hdf5 is therefore 1.14.6. pytables, h5py and vtk keep their versions and get rebuilt variants. |
 | mysqlclient | Built by pip against conda-forge's mysql 9.7.1, through conda-forge's `pkg-config`. conda-forge's own mysqlclient (2.2.8) would pull mysql back to 9.6. |
 | ffmpeg | 8.1.2, not 9.0.2: ffmpeg 9 would pull mysql back from 9.7.1. Neither is a required package. |
@@ -231,6 +231,34 @@ current release, if it works alongside these. The ones that don't are dropped; s
 | jupyterlab-spreadsheet | The npm extension became pip `jupyterlab-spreadsheet-editor` 0.7.2. |
 | plotly_express | Part of plotly (7.1.0) now; the line is gone. |
 | R (`r_8`) | Same as `r_7`, but conda-forge only: r-base 4.5.3, rpy2 3.6.8. |
+
+### burnman with `--no-deps`
+
+`base_pip_8` runs `pip install --no-deps burnman`. burnman 2.1.0 declares numpy < 2 and numba 0.59,
+which would make pip downgrade numpy (and fail on Python 3.14). `--no-deps` skips its declared
+dependencies, so it uses conda-forge's numpy 2, numba, scipy, matplotlib, cvxpy and sympy. With
+numpy 2.5.3 and numba 0.68, forsterite at 10 GPa and 1500 K comes out at 3362.47 kg/m³. That's the
+same as with burnman's GitHub `main`. `pip check` reports burnman's numpy and numba pins as unmet.
+That's expected.
+
+numba is required even though burnman's numba imports are optional. In 2.1.0, the stand-in it
+defines when numba is missing is `def jit(fn)`, but every use is `@jit(nopython=True)`, so
+`import burnman` raises `TypeError: jit() got an unexpected keyword argument 'nopython'`.
+`NUMBA_DISABLE_JIT=1` takes the same path and fails the same way.
+
+**Updating an existing install.** `jpkg update 8` doesn't touch burnman, because `update` never
+re-runs `base_conda_8` or `base_pip_8`. To update it by hand:
+
+```sh
+anaconda-8/bin/pip install -U --no-deps burnman
+```
+
+If a new release needs newer versions of its dependencies, install those with conda first. Then
+run a smoke test:
+
+```sh
+anaconda-8/bin/python -c "import burnman; m = burnman.minerals.SLB_2011.forsterite(); m.set_state(10e9, 1500.); print(m.density)"
+```
 
 ### Dropped from version 8
 
@@ -267,7 +295,8 @@ On the test image (stock Rocky Linux 10 plus the prerequisites), as an unprivile
   - pandas and tables write and read HDF5.
   - meshio and imageio write and read files.
 - **Other packages:** the kept ones import, and oct2py runs octave. `pip check` finds no broken
-  requirements.
+  requirements. With burnman now installed with `--no-deps`, it also reports burnman's numpy and
+  numba pins (expected).
 - **Kernels:** `python3`, `octave` and `r` are installed.
 - **JupyterLab:** every extension reports `enabled OK` except `jupyterlab-mathjax3` (see above).
   That includes `@jupyter-widgets/jupyterlab-manager` 5.0.16, plotly, ipympl, leaflet,

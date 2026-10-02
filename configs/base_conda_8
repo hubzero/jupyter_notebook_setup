@@ -7,8 +7,9 @@ conda update -y --all
 # The required stack, in one solve so the compiled libraries (vtk, proj/geos, hdf5) stay consistent.
 # Notebook 7 has no classic server; nbclassic serves the classic UI that start_jupyter and appmode use.
 conda install -y python=3.14 numpy scipy pandas matplotlib pytables meshio imageio cartopy cmcrameri autograd pyvista jupyterlab notebook nbclassic ipywidgets widgetsnbextension
-# burnman is not on conda-forge (base_pip_8 installs it); these are its dependencies.  Without conda's
-# numba, pip would try to build an old numba from source.
+# burnman is not on conda-forge; base_pip_8 installs it with --no-deps, so its dependencies come
+# from here.  numba is required: burnman 2.1.0's no-numba fallback is broken (its stand-in jit()
+# doesn't accept nopython=True), so `import burnman` fails without it.
 conda install -y numba cvxpy sympy
 conda install -y mysql
 # pip's mysqlclient finds conda's MySQL library through pkg-config (conda-forge's own mysqlclient lags
