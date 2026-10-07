@@ -282,6 +282,10 @@ class FakeInstall(object):
         with open('order') as f:
             return f.read().split()
 
+    def built(self):
+        # make_new builds into a dated directory next to anaconda-T
+        return os.path.join(os.path.realpath(self.tmp), 'anaconda-T_' + time.strftime('%Y-%m-%d'))
+
 
 class TestInstallErrors(FakeInstall, unittest.TestCase):
 
@@ -343,7 +347,7 @@ class TestInstallErrors(FakeInstall, unittest.TestCase):
         self.assertIsNone(code, out)
         self.assertTrue(os.path.isfile('url-installer.sh'), 'the installer should be downloaded')
         self.assertEqual(self.order(), ['base_conda', 'base_pip'])
-        self.assertTrue(os.path.isdir(os.path.join(self.tmp, 'anaconda-T', 'bin')))
+        self.assertTrue(os.path.isdir(os.path.join(self.built(), 'bin')))
 
     def test_version_8_configs(self):
         for name in ('base_conda_8', 'base_pip_8', 'r_8'):
@@ -359,9 +363,56 @@ class TestInstallErrors(FakeInstall, unittest.TestCase):
         code, out = self.make_new(with_r=True)
         self.assertIsNone(code, out)
         self.assertEqual(self.order(), ['base_conda', 'base_pip', 'r'])
-        self.assertTrue(os.path.isdir(os.path.join(self.tmp, 'anaconda-T', 'bin')))
+        self.assertTrue(os.path.isdir(os.path.join(self.built(), 'bin')))
         # Anaconda's linker can't link against Rocky 10's glibc; make_new removes it
-        self.assertFalse(os.path.lexists(os.path.join(self.tmp, 'anaconda-T', 'compiler_compat', 'ld')))
+        self.assertFalse(os.path.lexists(os.path.join(self.built(), 'compiler_compat', 'ld')))
+        # the switch is left to the admin
+        self.assertFalse(os.path.lexists(os.path.join(self.tmp, 'anaconda-T')))
+        self.assertIn('  ln -s %s anaconda-T\n' % os.path.basename(self.built()), out)
+
+    def test_existing_build_dir_stops_install(self):
+        self.installer()
+        self.config('base_conda_T', 'echo base_conda >> order\n')
+        self.config('base_pip_T', 'echo base_pip >> order\n')
+        os.mkdir(self.built())
+        code, out = self.make_new()
+        self.assertEqual(code, 1, out)
+        self.assertIn('already exists', out)
+        self.assertEqual(self.order(), [])
+
+    def test_env_file_names_the_symlink(self):
+        self.installer()
+        self.config('base_conda_T', '')
+        self.config('base_pip_T', '')
+        env_dir = os.path.join(self.tmp, 'environ.d')
+        code, out = self.make_new(desktop=False, envdir=env_dir)
+        self.assertIsNone(code, out)
+        self.assertEqual(os.listdir(env_dir), ['anaconda-T'])
+        with open(os.path.join(env_dir, 'anaconda-T')) as f:
+            self.assertIn('prepend PATH %s/bin\n' % os.path.join(os.path.realpath(self.tmp), 'anaconda-T'),
+                          f.read())
+
+    def test_switch_instructions(self):
+        link = os.path.join(self.tmp, 'anaconda-T')
+        new = os.path.join(self.tmp, 'anaconda-T_2026-10-07')
+
+        def switch():
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.jpkg.print_switch(link, new)
+            return out.getvalue()
+
+        self.assertIn('  ln -s anaconda-T_2026-10-07 anaconda-T\n', switch())
+        os.mkdir(link)
+        self.assertIn('  mv anaconda-T anaconda-T.old && ln -s anaconda-T_2026-10-07 anaconda-T\n',
+                      switch())
+        os.rmdir(link)
+        os.mkdir(os.path.join(self.tmp, 'anaconda-T_2026-01-01'))
+        os.symlink('anaconda-T_2026-01-01', link)
+        out = switch()
+        self.assertIn('  ln -s anaconda-T_2026-10-07 anaconda-T.tmp && mv -T anaconda-T.tmp anaconda-T\n',
+                      out)
+        self.assertIn('Running sessions keep using anaconda-T_2026-01-01', out)
 
 
 class LauncherTests(object):

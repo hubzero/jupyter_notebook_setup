@@ -72,6 +72,29 @@ just scrolled past in the output. Now:
 Turning on these checks exposed many config lines that had been failing without anyone noticing.
 Most of the config changes below fix those lines.
 
+### Dated build directories
+
+`jpkg install <ver>` builds into `anaconda-<ver>_<YYYY-MM-DD>` in the current directory, never into
+`anaconda-<ver>` itself. `anaconda-<ver>` is meant to be a symlink to the build in use, and switching
+it is left to you: at the end, `jpkg` prints the commands. Why:
+
+- conda writes the install's full path into script first lines, `bin/` scripts and many package
+  files, and `jpkg` does the same in `start_jupyter` and the kernels. A build only works at the path
+  it was built in, so it can't be built elsewhere and moved into place.
+- The installer refuses a directory that already exists, and building over a live install would
+  change files under the sessions using it.
+
+The `use` file (`environ.d/anaconda-<ver>`) puts `anaconda-<ver>/bin` on the PATH, so it follows the
+symlink. The build's own files name its dated directory. After a switch, running sessions keep
+their old build and new sessions get the new one. Delete an old build once nothing uses it.
+`update` and `cleanup` work on whatever `anaconda-<ver>` points to.
+
+If `anaconda-<ver>` is still a real directory from an older `jpkg`, the printed commands move it to
+`anaconda-<ver>.old` before creating the symlink. That build's files name `anaconda-<ver>`, so
+sessions still running from it will load the new build's files after the switch. Make that first
+switch when nobody is using it. Starting a second build on the same day stops with an error; remove
+or rename the earlier build first.
+
 ### Removed
 
 - **`jpkg netinst`.** It downloaded a prebuilt tarball from `packages.hubzero.org`. No `anaconda-7`

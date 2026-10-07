@@ -7,6 +7,7 @@ import sys
 import os
 import re
 import argparse
+import time
 from subprocess import check_output
 from string import Template
 from glob import glob
@@ -208,6 +209,30 @@ def lock_channels(instpath):
         f.write(text)
 
 
+def print_switch(linkpath, instpath):
+    """Print the commands that make linkpath (anaconda-<ver>) point at the new build."""
+    parent, link = os.path.split(linkpath)
+    new = os.path.basename(instpath)
+    print()
+    print("Built %s.  To put it in use:" % instpath)
+    print()
+    print("  cd %s" % parent)
+    if os.path.islink(linkpath):
+        print("  ln -s %s %s.tmp && mv -T %s.tmp %s" % (new, link, link, link))
+        print()
+        print("Running sessions keep using %s; new ones get %s." %
+              (os.path.basename(os.path.realpath(linkpath)), new))
+        print("Delete the old build once nothing uses it.")
+    elif os.path.lexists(linkpath):
+        print("  mv %s %s.old && ln -s %s %s" % (link, link, new, link))
+        print()
+        print("%s is a directory, not a symlink.  Its files refer to it by that path, so sessions" % link)
+        print("still running from it will load files from %s after the switch.  Do it when" % new)
+        print("nobody is using it, and delete %s.old afterwards." % link)
+    else:
+        print("  ln -s %s %s" % (new, link))
+
+
 def write_start_scripts(dirname,
                         bindir,
                         themes):
@@ -309,7 +334,14 @@ def make_new(args):
         script = os.path.basename(script)
     else:
         url = 'https://repo.continuum.io/archive/%s' % script
-    instpath = os.path.realpath('anaconda-%s' % (args.ver))
+    # Each build goes in its own dated directory, and anaconda-<ver> is a symlink to the one in use,
+    # switched by hand (print_switch).  conda writes the install path into its files, so a build
+    # can't be moved afterwards, and building in place would change files under running sessions.
+    linkpath = os.path.join(os.path.realpath(os.getcwd()), 'anaconda-%s' % (args.ver))
+    instpath = '%s_%s' % (linkpath, time.strftime('%Y-%m-%d'))
+    if os.path.lexists(instpath):
+        print("Error: %s already exists." % instpath)
+        sys.exit(1)
     print("script:%s - %s" % (script, instpath))
     if not os.path.isfile(script):
         print("Downloading", script)
@@ -387,10 +419,11 @@ def make_new(args):
         install_extensions(instpath, args.desktop)
 
     if not args.desktop:
-        write_env(args.ver, env_dir, instpath)
+        write_env(args.ver, env_dir, linkpath)
 
     check_perm(instpath)
     cleanup(instpath, args.desktop)
+    print_switch(linkpath, instpath)
 
 
 def make_update(args):
