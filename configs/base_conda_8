@@ -16,6 +16,7 @@ conda install -y mysql
 # behind and pulls mysql back a release)
 conda install -y pkg-config
 conda install -y pymysql
+conda install -y pyopenssl
 # without the floor conda picks dask 2023.3 (and bokeh 2.4) instead of downgrading hdf5 2.x to 1.14,
 # which current pyarrow still needs
 conda install -y "dask>=2026.8" bokeh
