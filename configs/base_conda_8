@@ -30,7 +30,9 @@ conda install -y celery
 # gmaps: dropped.  0.9.0 (2019), the last release, ships only a source lab extension for
 # @jupyter-widgets/base 2 (ipywidgets 7.5, JupyterLab <= 2); ipywidgets 8 uses base 6.
 #conda install -y gmaps
-conda install -y ipyleaflet
+# jupyter_leaflet (ipyleaflet's front end) is pinned to conda-forge's noarch build: Anaconda's build
+# installs into lib/python3.10, where Python 3.14 never sees it.
+conda install -y ipyleaflet conda-forge/noarch::jupyter_leaflet
 conda install -y bagit
 conda install -y fftw
 conda install -y nbsphinx

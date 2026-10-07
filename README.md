@@ -191,6 +191,12 @@ current release, if it works alongside these. The ones that don't are dropped; s
   installer (26.7.2-0). `jpkg` downloads any `#ver=` that is a URL as it is; a bare file name still
   comes from the Anaconda archive, as for 7. Everything comes from conda-forge, so the defaults
   channel and its terms of service are out of the picture.
+- **Channels locked to conda-forge.** The installing account's `~/.condarc` can still add
+  `defaults`. For a `#ver=` URL, `jpkg install` and `jpkg update` add `#!final` to the `channels:`
+  line of the install's `.condarc` and set `channel_priority: strict   #!final`, so later config
+  files can't change either setting. conda only honors `#!final` on the key's own line. `update`
+  fixes the channels of an existing install but not packages already installed from `defaults`.
+  `conda list --show-channel-urls | grep -v conda-forge` lists those.
 - **Python 3.14.** Current numpy and scipy need Python ≥ 3.12, and vtk has no build for 3.15.
 - **One conda solve for the required stack**, so vtk, proj/geos and hdf5 come out consistent.
 - **No Node.** JupyterLab 4 extensions are prebuilt and ship in their pip or conda packages, so no
@@ -230,6 +236,7 @@ current release, if it works alongside these. The ones that don't are dropped; s
 | RISE | Replaced by `jupyterlab-rise` 0.43.1. That package pulls in `jupyterlab-mathjax3`, a JupyterLab 3 extension, and JupyterLab 4 lists it as `X` and skips it. JupyterLab 4 renders MathJax itself. |
 | jupyterlab-spreadsheet | The npm extension became pip `jupyterlab-spreadsheet-editor` 0.7.2. |
 | plotly_express | Part of plotly (7.1.0) now; the line is gone. |
+| jupyter_leaflet | ipyleaflet's front end. Pinned to `conda-forge/noarch::jupyter_leaflet`, because Anaconda's build installs into `lib/python3.10`, which Python 3.14 never loads. An install whose `~/.condarc` added `defaults` may have Anaconda's build. To fix it, run `jpkg update 8`, then `anaconda-8/bin/conda install -y --force-reinstall conda-forge/noarch::jupyter_leaflet`, then delete what's left in `lib/python3.10`. |
 | R (`r_8`) | Same as `r_7`, but conda-forge only: r-base 4.5.3, rpy2 3.6.8. |
 
 ### burnman with `--no-deps`

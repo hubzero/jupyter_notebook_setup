@@ -185,6 +185,29 @@ def get_scriptname(ver):
     return None
 
 
+def lock_channels(instpath):
+    """Keep a Miniforge install on conda-forge only.  The installing account's ~/.condarc may add
+    'defaults'; '#!final' keeps later config files from changing a setting, but conda only honors it
+    on the key's own line."""
+    condarc = os.path.join(instpath, '.condarc')
+    text = ''
+    if os.path.isfile(condarc):
+        with open(condarc) as f:
+            text = f.read()
+    if text and not text.endswith('\n'):
+        text += '\n'
+    if re.search(r'^channels:', text, re.M):
+        text = re.sub(r'^channels:[ \t]*$', 'channels:   #!final', text, flags=re.M)
+    else:
+        text = 'channels:   #!final\n  - conda-forge\n' + text
+    if re.search(r'^channel_priority:', text, re.M):
+        text = re.sub(r'^channel_priority:.*$', 'channel_priority: strict   #!final', text, flags=re.M)
+    else:
+        text += 'channel_priority: strict   #!final\n'
+    with open(condarc, 'w') as f:
+        f.write(text)
+
+
 def write_start_scripts(dirname,
                         bindir,
                         themes):
@@ -280,7 +303,8 @@ def make_new(args):
     env_dir = args.envdir
     script = get_scriptname(args.ver)
     # '#ver=' is either an Anaconda archive file name or the full URL of an installer (Miniforge)
-    if '://' in script:
+    miniforge = '://' in script
+    if miniforge:
         url = script
         script = os.path.basename(script)
     else:
@@ -302,6 +326,9 @@ def make_new(args):
     ld = os.path.join(instpath, 'compiler_compat', 'ld')
     if os.path.lexists(ld):
         os.remove(ld)
+
+    if miniforge:
+        lock_channels(instpath)
 
     bindir = os.path.join(instpath, 'bin')
 
@@ -389,6 +416,9 @@ def make_update(args):
     if not os.path.isdir(instpath):
         print("Error: %s not found." % (instpath))
         sys.exit(1)
+
+    if '://' in (get_scriptname(args.ver) or ''):
+        lock_channels(instpath)
 
     bindir = os.path.join(instpath, 'bin')
 
