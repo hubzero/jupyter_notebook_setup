@@ -116,13 +116,8 @@ def run_notebook(args):
     os.chdir(os.environ['HOME'])
 
     # When invoked by the system, the shell will be dash.
-    workspace = True
-    if "SHELL" in os.environ:
-        os.environ['SHELL'] = "/bin/bash"
-    else:
-        workspace = False
-        # Users probably want "bash"
-        os.environ['SHELL'] = "/bin/bash"
+    workspace = "SHELL" in os.environ
+    os.environ['SHELL'] = "/bin/bash"
 
     p_path, p_url = get_proxy_addr()
     cmdlist = [
