@@ -262,8 +262,8 @@ def run_notebook(args):
     p_path, p_url = get_proxy_addr()
     cmdlist = [
               "jupyter", "notebook", "--no-browser", "--port=8000",
-              "--ip=0.0.0.0",
-              '--NotebookApp.base_url="%s"' % p_path
+                                     "--ip=0.0.0.0",
+                                     "--NotebookApp.base_url=%s" % (p_path)
               ]
 
     token = get_cookie()[1]
@@ -284,7 +284,7 @@ def run_notebook(args):
     if not workspace:
         try:
             Popen(['xview', '-fit', '-fullscreen',
-                  '/apps/jupyterexamples/current/images/jupyter.gif'])
+                            '/apps/jupyterexamples/current/images/jupyter.gif'])
         except:
             pass
 
