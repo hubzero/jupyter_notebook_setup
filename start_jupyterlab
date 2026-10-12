@@ -28,8 +28,6 @@ import argparse
 import json
 from subprocess import call, Popen, check_output
 
-anacondaHome = os.path.dirname(os.path.dirname(os.path.realpath(os.path.abspath(__file__))))
-
 def handler(signum, frame):
     pass
 
@@ -155,9 +153,10 @@ def run_notebook(args):
 
     # If invoked by system, display logo for screenshots
     if not workspace:
+        anacondaHome = os.path.dirname(os.path.dirname(os.path.realpath(os.path.abspath(__file__))))
         try:
-            Popen(['xview','-fit','-fullscreen',
-                           os.path.join(anacondaHome,'share','jupyter','static','jupyter.gif')])
+            Popen(['xloadimage','-fit','-fullscreen',
+                                os.path.join(anacondaHome,'share','jupyter','static','jupyter.gif')])
         except:
             pass
 
