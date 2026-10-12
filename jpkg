@@ -317,6 +317,7 @@ def make_install(args):
     print("Nanohub: %s" % (args.with_nanohub))
     print("Desktop: %s" % (args.desktop))
     print("Python2: %s" % (args.with_py2))
+    print("R: %s" % (args.with_r))
     print("ML: %s" % (args.with_ml))
     print("VNC: %s" % (args.with_vnc))
     print("Dash: %s" % (args.with_dash))
