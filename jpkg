@@ -45,13 +45,14 @@ def check_perm(p):
     bindir = os.path.join(p, 'bin')
 
     print("Finding and fixing files that are not world-readable")
-    os.system('find . ! -perm -004 -exec chmod a+r {} \;')
+    os.system(r'find . ! -perm -004 -exec chmod a+r {} \;')
 
     print("Finding non-searchable directories.  Should be none.")
     os.system('find . -type d -a ! -perm -011')
 
     print('Finding and fixing world-writable files.')
-    os.system('find -L . -perm -o+w -exec chmod o-w {} \;')
+    # With -L, -type l matches only broken symlinks (conda's pkgs/ cache has many); chmod can't follow them.
+    os.system(r'find -L . -perm -o+w ! -type l -exec chmod o-w {} \;')
 
     os.chdir(cwd)
 
