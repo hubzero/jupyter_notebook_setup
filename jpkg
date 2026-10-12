@@ -10,6 +10,7 @@ import argparse
 from subprocess import check_output
 from string import Template
 from glob import glob
+import base64
 import platform
 
 # for python2 compatibility
@@ -24,6 +25,10 @@ This installation script installs anaconda with a set of packages.
 We also add our custom jupyter hub code to the jupyter configs.  All our configuration changes
 and extensions are added to the anaconda subdirectory.
 """
+
+# Rocky Linux 10 host prerequisites:
+#   dnf install -y which bzip2 tar curl git findutils procps-ng glibc-langpack-en python-unversioned-command gcc
+# (octave is available from EPEL, which needs CRB enabled: dnf install epel-release && crb enable)
 
 
 def run(cmd):
@@ -166,7 +171,7 @@ def install_extensions(p, desktop):
 
     # install logos
     os.system('mkdir -p ' + dst + '/static')
-    os.system('cp -r ../logo/* ' + dst + '/static')
+    os.system('cp ../logo/jupyter.gif ' + dst + '/static')
     os.chdir(cwd)
 
 
@@ -217,13 +222,14 @@ def lock_channels(instpath):
 
 def write_start_scripts(dirname,
                         bindir,
+                        version,
                         themes):
     start_jupyter_main = """    sys.exit(main())
 
 
 """
 
-    start_jupyter_main_themes = """    doThemes = False
+    start_jupyter_main_themes = r"""    doThemes = False
     checkForThemes = False
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
@@ -248,16 +254,48 @@ def write_start_scripts(dirname,
 """
 
     pythonCmd = os.path.join(bindir,'python')
+
+    hubName = os.uname()[1].split('-')[0]
+    hubLogoPath = os.path.join(dirname,"logo","%s.png" % (hubName))
+    if not os.path.exists(hubLogoPath):
+        print("WARNING:")
+        print("This installation will put an image representing your host in the Jupyter menubar.")
+        print("No image for your host, \"%s\" could be found." % (hubName))
+        print("This installation process will use a default hubzero image instead.")
+        print("To update the image, copy a PNG image of your choice to")
+        print(hubLogoPath)
+        print("and run the command")
+        print(sys.argv[0] + " update " + version)
+        print()
+        hubLogoPath = os.path.join(dirname,"logo","hubzero.png")
+    if os.path.exists(hubLogoPath):
+        with open(hubLogoPath,"rb") as imageFile:
+            base64Bytes = base64.b64encode(imageFile.read())
+            hubLogo = base64Bytes.decode("utf-8")
+            size = 76
+            hubLogoChunks = [hubLogo[start:start+size] for start in range(0,len(hubLogo),size)]
+
+    jupyterLogoPath = os.path.join(dirname,"logo","jupyter.png")
+    if os.path.exists(jupyterLogoPath):
+        with open(jupyterLogoPath,"rb") as imageFile:
+            base64Bytes = base64.b64encode(imageFile.read())
+            jupyterLogo = base64Bytes.decode("utf-8")
+            size = 76
+            jupyterLogoChunks = [jupyterLogo[start:start+size] for start in range(0,len(jupyterLogo),size)]
+
 #   start_jupyter script
     with open(os.path.join(dirname,'start_jupyter'),'r') as fp:
-        startJupyterTemplate = fp.read()
+        startJupyterTemplate = Template(fp.read())
     if themes:
         main = start_jupyter_main_themes.format(THEMEPACKAGE=themes)
     else:
         main = start_jupyter_main
     with open(os.path.join(bindir,'start_jupyter'),'w') as fp:
         fp.write("#!%s\n" % (pythonCmd))
-        fp.write(startJupyterTemplate)
+        fp.write(startJupyterTemplate.safe_substitute(HUBLOGOIMAGEPATH=hubLogoPath,
+                                                      HUBLOGOIMAGE='\n'.join(hubLogoChunks),
+                                                      JUPYTERLOGOIMAGEPATH=jupyterLogoPath,
+                                                      JUPYTERLOGOIMAGE='\n'.join(jupyterLogoChunks)))
         fp.write(main)
     os.system('chmod a+x %s' % (os.path.join(bindir,'start_jupyter')))
 
@@ -401,6 +439,7 @@ def make_install(args):
     if not args.no_notebooks:
         write_start_scripts(dirname,
                             bindir,
+                            args.ver,
                             args.themes)
 
         install_octave(instpath, env_dir, args.desktop)
@@ -473,6 +512,7 @@ def make_update(args):
     if not args.no_notebooks:
         write_start_scripts(dirname,
                             bindir,
+                            args.ver,
                             args.themes)
 
     check_perm(instpath)
