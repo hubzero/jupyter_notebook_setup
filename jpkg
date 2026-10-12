@@ -25,6 +25,15 @@ and extensions are added to the anaconda subdirectory.
 """
 
 
+def run(cmd):
+    """Run cmd with /bin/sh and exit if it fails."""
+    ret = os.system(cmd)
+    if ret:
+        status = ret >> 8 if os.WIFEXITED(ret) else ret
+        print("Error: command failed with status %d:\n  %s" % (status, cmd))
+        sys.exit(1)
+
+
 def check_perm(p):
     """In each installation directory, check the permissions of files so
     we don't end up with packages users can't read."""
@@ -253,13 +262,13 @@ def make_new(args):
     print("script:%s - %s" % (script, instpath))
     if not os.path.isfile(script):
         print("Downloading", script)
-        os.system("curl -O https://repo.continuum.io/archive/%s" % script)
+        run("curl --fail --location --remote-name %s" % (url))
         if not os.path.isfile(script):
             print("Error: %s not found and could not download." % script)
             sys.exit(1)
 
     print("Installing anaconda-%s in %s" % (args.ver, instpath))
-    os.system('bash ' + script + ' -b -p ' + instpath)
+    run('bash ' + script + ' -b -p ' + instpath)
 
     bindir = os.path.join(instpath, 'bin')
 
@@ -269,45 +278,45 @@ def make_new(args):
 
     cmd = '. ' + os.path.join(dirname, 'configs', 'base_conda_' + args.ver)
     print("********\n%s\n********" % cmd)
-    os.system(cmd)
+    run('set -e; ' + cmd)
     if args.with_nanohub:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_conda_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     cmd = '. ' + os.path.join(dirname, 'configs', 'base_pip_' + args.ver)
     print("********\n%s\n********" % cmd)
-    os.system(cmd)
+    run('set -e; ' + cmd)
 
     if args.with_nanohub:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_pip_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_ml:
         cmd = '. ' + os.path.join(dirname, 'configs', 'ml_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     # if args.desktop:
     #     cmd = '. ' + os.path.join(dirname, 'configs', 'desktop_' + args.ver)
     #     print("********\n%s\n********" % cmd)
-    #     os.system(cmd)
+    #     run('set -e; ' + cmd)
 
     if args.with_py2:
         cmd = '. ' + os.path.join(dirname, 'configs', 'python2_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_r:
         cmd = '. ' + os.path.join(dirname, 'configs', 'r_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if not args.no_notebooks:
         write_start_scripts(dirname,
