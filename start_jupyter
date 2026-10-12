@@ -507,6 +507,32 @@ def cleanup():
         call(['rm', '-rf', ndir])
 
 
+def fix_zero_length_json_config_files():
+    # zero length json files are a problem
+    nbconfig_dir = os.path.expanduser("~/.jupyter/nbconfig")
+    if os.path.isdir(nbconfig_dir):
+        for fname in os.listdir(nbconfig_dir):
+            if not fname.endswith(".json"):
+                continue
+            fpath = os.path.join(nbconfig_dir, fname)
+            try:
+                # Skip if not a file
+                if not os.path.isfile(fpath):
+                    continue
+
+                # Try to load JSON
+                with open(fpath, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    if not content:
+                        raise ValueError("empty file")
+                    json.loads(content)  # will raise if invalid
+
+            except Exception:
+                # Replace with valid empty JSON
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write("{}\n")
+
+
 def main():
     if os.getuid() == 0:
         print("Do not run this as root.", file=sys.stderr)
@@ -524,26 +550,5 @@ def main():
 
 
 if __name__ == "__main__":
-    doThemes = False
-    checkForThemes = False
-    if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            if arg == '--themes':
-                checkForThemes = True
-                break
-    if checkForThemes:
-        sys.argv.remove('--themes')
-        try:
-            from nanohubthemes import main as themesMain
-            doThemes = True
-        except ImportError:
-            doThemes = False
-        else:
-            sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
-            sys.exit(themesMain())
-            #sys.exit(main())
-
-    if not doThemes:
-        sys.exit(main())
-
+    fix_zero_length_json_config_files()
 
