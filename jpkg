@@ -42,7 +42,6 @@ def check_perm(p):
     os.chdir(p)
 
     print("Checking file permissions in", p)
-    bindir = os.path.join(p, 'bin')
 
     print("Finding and fixing files that are not world-readable")
     os.system(r'find . ! -perm -004 -exec chmod a+r {} \;')
@@ -72,22 +71,34 @@ def install_octave(p, env_dir, desktop):
 def write_env(rver, env_dir, instpath):
     # write environ files for 'use' on the hubs
     bindir = os.path.join(instpath, 'bin')
-    os.system('mkdir -p %s' % env_dir)
 
-    fname = os.path.join(env_dir, os.path.basename(instpath))
+    useletTemplate = """
+conflict ANACONDA_CHOICE
 
-    with open(fname, 'w') as f:
-        f.write('\nconflict ANACONDA_CHOICE\n\n')
-        f.write('desc "Anaconda is a package manager, an environment manager, a Python distribution, and a collection of over 1,000+ open source packages."\n\n')
-        f.write('help "https://docs.anaconda.com/new-anaconda-start-here"\n\n')
-        f.write('version=%s\n\n' % rver)
-        f.write('prepend PATH %s\n\n' % bindir)
-        f.write('tags MATHSCI\n')
+desc "Anaconda is a package manager, an environment manager, a Python distribution, and a collection of over 1,000+ open source packages."
 
-    # needed for submit, which only works on python 2 for now
-    #   hubzero = '/usr/lib/python2.7/dist-packages/hubzero'
-    # libdir = os.path.join(p, 'lib', 'python2.7', 'site-packages')
-    # os.system('ln -s %s %s' % (hubzero, libdir))
+help "https://docs.anaconda.com/new-anaconda-start-here"
+
+version={VERSION}
+
+prepend PATH {BINDIR}
+
+tags MATHSCI
+"""
+    uselet = useletTemplate.format(VERSION=rver,BINDIR=bindir)
+
+    if env_dir != "STDOUT":
+        fname = os.path.join(env_dir, os.path.basename(instpath))
+        try:
+            os.system('mkdir -p %s' % (env_dir))
+            with open(fname, 'w') as f:
+                f.write(uselet)
+        except:
+            print("Error: uselet file %s could not be created" % (fname))
+            print(uselet)
+    else:
+        print("uselet content:")
+        print(uselet)
 
 
 def install_extensions(p, desktop):
@@ -476,11 +487,11 @@ def find_octave(pypath, desktop, env_dir, prompt=True):
 
     pypath += "/bin/python"
 
-    if desktop:
+    if   desktop:
         try:
-            oc = check_output("octave --version", shell=True).split('\n')[0]
+            oc = check_output("octave --version", shell=True).decode().split('\n')[0]
             ver = oc.split()[-1]
-            opath = check_output("which octave", shell=True).strip()
+            opath = check_output("which octave", shell=True).decode().strip()
         except:
             if prompt:
                 print("\nWARNING: Octave not found.  You may want to install it.")
@@ -497,9 +508,11 @@ def find_octave(pypath, desktop, env_dir, prompt=True):
                  ver="Octave %s" % ver,
                  exe=opath)
         return s.substitute(d)
+    elif env_dir == "STDOUT":
+        return None
 
     try:
-        olist = check_output("ls %s/octave*" % env_dir, shell=True).split()
+        olist = check_output("ls %s/octave*" % env_dir, shell=True).decode().split()
     except:
         if prompt:
             print("\nWARNING: No octave module was found.")
@@ -535,9 +548,9 @@ if __name__ == '__main__':
     patternMatch = re.match(installPattern,installBase)
     if patternMatch:
         installOS = patternMatch.group(1)
+        installEnvDir = os.path.join(os.sep,'apps','share64',installOS,'environ.d')
     else:
-        installOS = 'debian10'
-    installEnvDir = os.path.join(os.sep,'apps','share64',installOS,'environ.d')
+        installEnvDir = 'STDOUT'
 
     # at least one install fails if this is not set
     os.environ['LANG'] = 'en_US.UTF-8'
