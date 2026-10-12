@@ -140,7 +140,7 @@ def get_session():
         return session, sessiondir
 
     # something went wrong. restore environment variables
-    psout = check_output(['ps', 'auxwwe']).split('\n')
+    psout = check_output(['ps', 'auxwwe']).decode().split('\n')
     for line in psout:
         ind = line.find('SESSIONDIR')
         if ind > 0:
@@ -216,7 +216,7 @@ def find_notebook(name, tool, copyNotebooks, arglist):
     realPath = os.path.realpath(os.path.abspath(tool))
     call("cp -sRf %s/* %s" % (realPath,tdest), shell=True)
     if copyNotebooks:
-        call("""( cd %s; find ./ -name "*.ipynb" -exec /bin/cp --remove-destination {} %s/{} \; )""" % (realPath,tdest),shell=True)
+        call(r"""( cd %s; find ./ -name "*.ipynb" -exec /bin/cp --remove-destination {} %s/{} \; )""" % (realPath,tdest),shell=True)
 
     # notebook will be either relative to the tool
     # directory or in the bin directory
@@ -231,10 +231,27 @@ def find_notebook(name, tool, copyNotebooks, arglist):
     return os.path.split(nb_name)
 
 
+def notebook_version():
+    """Major version of the installed notebook package, 0 if it can't be found."""
+    try:
+        from notebook import __version__ as nbVersion
+        return int(nbVersion.split('.')[0])
+    except Exception:
+        return 0
+
+
 def run_notebook(args):
     global notebookProcess
 
     arglist = []
+
+    # Notebook 7 has no classic server.  nbclassic serves the classic UI on jupyter_server instead,
+    # under /nbclassic/ because Notebook 7 is installed alongside it.
+    nbclassic = notebook_version() >= 7
+    if nbclassic:
+        app, server, notebooks = 'nbclassic', 'ServerApp', 'nbclassic/notebooks'
+    else:
+        app, server, notebooks = 'notebook', 'NotebookApp', 'notebooks'
 
     if args.name is None:
         if args.tool:
@@ -248,10 +265,11 @@ def run_notebook(args):
             print("Changing directory to", nb_dir)
             os.chdir(nb_dir)
 
+        # a NotebookApp option even with nbclassic, whose NotebookApp.default_url overrides ServerApp's
         if args.app:
-            arglist.append('--NotebookApp.default_url="apps/%s"' % nb_name)
+            arglist.append('--NotebookApp.default_url="apps/%s"' % (nb_name))
         else:
-            arglist.append('--NotebookApp.default_url="notebooks/%s"' % nb_name)
+            arglist.append('--NotebookApp.default_url="%s/%s"' % (notebooks, nb_name))
 # disable ~/.local/lib/pythonX.Y/site-packages for tools
         os.environ['PYTHONNOUSERSITE'] = "yes"
 
@@ -261,14 +279,17 @@ def run_notebook(args):
 
     p_path, p_url = get_proxy_addr()
     cmdlist = [
-              "jupyter", "notebook", "--no-browser", "--port=8000",
-                                     "--ip=0.0.0.0",
-                                     "--NotebookApp.base_url=%s" % (p_path)
+               "jupyter", app, "--no-browser", "--port=8000",
+                               "--ip=0.0.0.0",
+                               "--%s.base_url=%s" % (server, p_path)
               ]
 
     token = get_cookie()[1]
     if token:
-        cmdlist.append('--NotebookApp.token=%s' % token)
+        if nbclassic:
+            cmdlist.append('--IdentityProvider.token=%s' % (token))
+        else:
+            cmdlist.append('--NotebookApp.token=%s' % (token))
 
     if args.debug:
         cmdlist.append('--Application.log_level="DEBUG"')
@@ -399,14 +420,14 @@ require(["jquery", "base/js/namespace", "base/js/dialog"],
         try {
             var quit = document.getElementById("shutdown");
             quit.parentNode.removeChild(quit);
-        } 
+        }
         catch(err) {
         }
 
         if (nb_url.indexOf('token') === -1) { return };
         url = '<li id=\"share\" title=\"Share Session\"><a href=\"#\" id=\"share\">Share Session</a></li>';
         $("#open_notebook").after(url);
-        $('#share').off("click"); 
+        $('#share').off("click");
         $('#share').click(function () {
             txt = "The shareable URL below enables others to access your entire session. \
             Anyone with it can potentially read all your files on the hub. Be careful who you give it to.\

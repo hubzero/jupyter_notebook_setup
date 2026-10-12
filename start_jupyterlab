@@ -77,7 +77,7 @@ def get_session():
         return session, sessiondir
 
     # something went wrong. restore environment variables
-    psout = check_output(['ps', 'auxwwe']).split('\n')
+    psout = check_output(['ps', 'auxwwe']).decode().split('\n')
     for line in psout:
         ind = line.find('SESSIONDIR')
         if ind > 0:
@@ -110,10 +110,27 @@ def get_proxy_addr():
     return url_path, proxy_url
 
 
+def notebook_version():
+    """Major version of the installed notebook package, 0 if it can't be found."""
+    try:
+        from notebook import __version__ as nbVersion
+        return int(nbVersion.split('.')[0])
+    except Exception:
+        return 0
+
+
 def run_notebook(args):
 
     # JupyterLab starts in HOME dir
     os.chdir(os.environ['HOME'])
+
+    # Notebook 7 has no classic server.  nbclassic serves the classic UI on jupyter_server instead,
+    # under /nbclassic/ because Notebook 7 is installed alongside it.
+    nbclassic = notebook_version() >= 7
+    if nbclassic:
+        app, server, notebooks = 'nbclassic', 'ServerApp', 'nbclassic/notebooks'
+    else:
+        app, server, notebooks = 'notebook', 'NotebookApp', 'notebooks'
 
     # When invoked by the system, the shell will be dash.
     workspace = "SHELL" in os.environ
@@ -121,9 +138,10 @@ def run_notebook(args):
 
     p_path, p_url = get_proxy_addr()
     cmdlist = [
-              "jupyter", "lab", "--no-browser", "--port=8000",
-                                "--ip=0.0.0.0",
-                                "--NotebookApp.base_url=%s" % (p_path)
+               "jupyter", "lab", "--no-browser", "--port=8000",
+                                 "--ip=0.0.0.0",
+                                 # JupyterLab 3 and 4 both run on jupyter_server
+                                 "--%s.base_url=%s" % (server, p_path)
               ]
 
     if args.debug:
