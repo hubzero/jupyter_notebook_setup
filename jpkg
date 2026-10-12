@@ -246,7 +246,7 @@ def write_start_scripts(dirname,
     os.system('chmod a+x %s' % (os.path.join(bindir,'start_jupyterlab')))
 
 
-def make_new(args):
+def make_install(args):
     global dirname  # where the install scripts are
 
 #   print(args)
@@ -285,13 +285,22 @@ def make_new(args):
 
     env_dir = args.envdir
     script = get_scriptname(args.ver)
+    # '#ver=' is either an Anaconda archive file name or the full URL of an installer (Miniforge)
+    if '://' in script:
+        url = script
+        script = os.path.basename(script)
+    else:
+        url = 'https://repo.continuum.io/archive/%s' % (script)
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
+    if os.path.lexists(instpath):
+        print("Error: %s already exists." % instpath)
+        sys.exit(1)
     print("script:%s - %s" % (script, instpath))
     if not os.path.isfile(script):
         print("Downloading", script)
         run("curl --fail --location --remote-name %s" % (url))
         if not os.path.isfile(script):
-            print("Error: %s not found and could not download." % script)
+            print("Error: %s not found and could not download." % (script))
             sys.exit(1)
 
     print("Installing anaconda-%s in %s" % (args.ver, instpath))
@@ -423,60 +432,6 @@ def make_update(args):
     cleanup(instpath, args.desktop)
 
 
-def do_downloads(ver):
-    ret = os.system("wget http://packages.hubzero.org/blobs/anaconda-%s.tar.xz -O - | tar -xJ" % ver)
-    if ret:
-        print("Download failed.")
-        sys.exit(1)
-
-
-def make_netinst(args):
-    do_downloads(args.ver)
-
-    instpath = os.path.realpath('anaconda-%s' % (args.ver))
-
-    # write env modules
-    write_env(args.ver, args.envdir, pathlist)
-
-    if args.nopy2:
-        # remove python2 kernel from menu
-        kpath = os.path.join(instpath,"share","jupyter","kernels","python2")
-        os.system("mv %s/kernel.json %s/kernel.json.disabled" % (kpath, kpath))
-
-    try:
-        check_output("octave --version", shell=True)
-        octave = True
-    except:
-        octave = False
-    if octave is False:
-        print("Could not find octave.  Disabling octave kernel in menu.")
-        kpath = os.path.join(instpath,"share","jupyter","kernels","octave")
-        os.system("mv %s/kernel.json %s/kernel.json.disabled" % (kpath, kpath))
-
-    hostimage = os.uname()[1].lower() + '.png'
-    imagedir = os.path.join(instpath,"share","jupyter","static")
-    hifull = os.path.join(imagedir, hostimage)
-    hzfull = os.path.join(imagedir, 'hubzero.png')
-    if not os.path.isfile(hifull):
-        print("WARNING:")
-        print("This installation will put an image representing your host in the Jupyter menubar.")
-        print("No image for your host, \"%s\" could be found." % os.uname()[1].lower())
-        print("This installation process will use a default hubzero image instead.")
-        print("To update the image, copy a PNG image of your choice to")
-        print(hifull)
-        print()
-        os.system('cp %s %s' % (hzfull, hifull))
-
-def do_install(desktop, cname, env_dir, instpath, nopy2):
-    install_updates(cname, instpath, nopy2)
-    install_kernels(instpath, nopy2)
-    install_octave(instpath, env_dir, desktop)
-    install_R_pkgs(instpath)
-    install_extensions(instpath, desktop)
-    check_perm(instpath)
-    cleanup(instpath, desktop)
-
-
 def make_cleanup(args):
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
     check_perm(instpath)
@@ -576,23 +531,17 @@ if __name__ == '__main__':
     # create the parser for the "install" command
     parser_install = subparsers.add_parser('install')
     parser_install.add_argument('ver', type=str)
-    parser_install.set_defaults(func=make_new)
+    parser_install.set_defaults(func=make_install)
 
     # create the parser for the "update" command
     parser_install = subparsers.add_parser('update')
     parser_install.add_argument('ver', type=str)
     parser_install.set_defaults(func=make_update)
 
-    # create the parser for the "netinst" command
-    parser_up = subparsers.add_parser('netinst')
-    parser_up.add_argument('ver', type=str)
-    parser_up.set_defaults(func=make_netinst)
-
     # create the parser for the "fix" command
     parser_fix = subparsers.add_parser('cleanup')
     parser_fix.add_argument('ver', default='',  nargs='?', type=str)
     parser_fix.set_defaults(func=make_cleanup)
-
 
     args = parser.parse_args()
     args.func(args)
