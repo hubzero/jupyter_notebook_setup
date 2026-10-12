@@ -99,6 +99,11 @@ def install_extensions(p, desktop):
     with open('jupyter_notebook_config.py', 'r') as f:
         intro = f.read()
 
+    # Notebook 7 has no classic server: the server settings go to jupyter_server, the classic UI
+    # settings stay with nbclassic (start_jupyter), and the classic extensions are installed for it.
+    classic = os.path.exists(os.path.join(p, 'bin', 'jupyter-nbextension'))
+    nbextension = 'nbextension' if classic else 'nbclassic-extension'
+
     spath = os.path.join(p, 'share', 'jupyter')
     os.system('mkdir -p ' + os.path.join(p, 'etc', 'jupyter'))
     fname = os.path.join(p, 'etc', 'jupyter', 'jupyter_notebook_config.py')
@@ -111,20 +116,30 @@ def install_extensions(p, desktop):
         f.write("\n")
         f.write("c.NotebookApp.extra_template_paths = ['%s']\n" % os.path.join(spath, 'templates'))
         f.write("c.NotebookApp.extra_static_paths = ['%s']\n" % os.path.join(spath, 'static'))
-        f.write("c.NotebookApp.trust_xheaders = True\n")
         f.write("c.NotebookApp.mathjax_url = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js'\n")
-        if not desktop:
-            f.write("c.NotebookApp.login_handler_class = 'hublogin.HubLoginHandler'\n")
-        f.write("c.NotebookApp.disable_check_xsrf = True")
+        if classic:
+            f.write("c.NotebookApp.trust_xheaders = True\n")
+            if not desktop:
+                f.write("c.NotebookApp.login_handler_class = 'hublogin.HubLoginHandler'\n")
+            f.write("c.NotebookApp.disable_check_xsrf = True")
 
+    if not classic:
+        fname = os.path.join(p, 'etc', 'jupyter', 'jupyter_server_config.py')
+        with open(fname, 'w') as f:
+            f.write("import sys\n")
+            f.write("sys.path.append('%s')\n" % os.path.join(spath, 'nbextensions'))
+            f.write("\n")
+            f.write("c.ServerApp.trust_xheaders = True\n")
+            if not desktop:
+                f.write("c.ServerApp.login_handler_class = 'hublogin.HubLoginHandler'\n")
+            f.write("c.ServerApp.disable_check_xsrf = True\n")
 
     if not desktop:
-        os.system('jupyter nbextension install --sys-prefix prefs')
-        os.system('jupyter nbextension enable --sys-prefix prefs/prefs')
+        os.system('jupyter %s install --sys-prefix prefs' % (nbextension))
+        os.system('jupyter %s enable --sys-prefix prefs/prefs' % (nbextension))
 
     # install calysto document tools
-    os.system('jupyter nbextension install --sys-prefix https://github.com/Calysto/notebook-extensions/archive/master.zip')
-
+    os.system('jupyter %s install --sys-prefix https://github.com/Calysto/notebook-extensions/archive/master.zip' % (nbextension))
 
     # install hublogin and terminate
     dst = os.path.join(p, 'share', 'jupyter')
