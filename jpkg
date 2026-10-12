@@ -10,6 +10,7 @@ import argparse
 from subprocess import check_output
 from string import Template
 from glob import glob
+import platform
 
 # for python2 compatibility
 try:
@@ -328,6 +329,23 @@ def make_install(args):
 
     print("Installing anaconda-%s in %s" % (args.ver, instpath))
     run('bash ' + script + ' -b -p ' + instpath)
+
+    ld = os.path.join(instpath, 'compiler_compat', 'ld')
+    if os.path.lexists(ld):
+        glibcVersion = [int(part) for part in platform.libc_ver()[1].split(".")]
+        if len(glibcVersion) == 2:
+            glibcVersion.append(0)
+        checkVersion = [2,34,0]
+        if glibcVersion >= checkVersion:
+            ldVersionText = check_output("%s --version" % (ld), shell=True).decode().split('\n')[0].split()[-1]
+            ldVersion = [int(part) for part in ldVersionText.split(".")]
+            if len(ldVersion) == 2:
+                ldVersion.append(0)
+            # Anaconda's linker (compiler_compat/ld) can't read the .relr.dyn sections in Rocky 10's glibc, so
+            # pip can't build C extensions with it.  Without it, gcc uses the system linker.
+            if ldVersion < checkVersion:
+                print("Removing %s", (ld))
+                os.remove(ld)
 
     if '/miniforge/' in url:
         lock_channels(instpath)
