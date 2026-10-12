@@ -229,6 +229,24 @@ def make_new(args):
         print("Themes: %s" % (args.themes))
     print()
 
+    configs = ['base_conda_' + args.ver, 'base_pip_' + args.ver]
+    if args.with_nanohub:
+        configs += ['nanohub_conda_' + args.ver, 'nanohub_pip_' + args.ver]
+    if args.with_ml:
+        configs.append('ml_' + args.ver)
+    if args.with_py2:
+        configs.append('python2_' + args.ver)
+    if args.with_r:
+        configs.append('r_' + args.ver)
+    if args.with_vnc:
+        configs.append('nbnovnc')
+    missing = [os.path.join('configs', c) for c in configs
+               if not os.path.isfile(os.path.join(dirname, 'configs', c))]
+    if missing:
+        print("Error: version %s has no config for the selected options: %s"
+              % (args.ver, ', '.join(missing)))
+        sys.exit(1)
+
     env_dir = args.envdir
     script = get_scriptname(args.ver)
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
@@ -509,7 +527,7 @@ if __name__ == '__main__':
     parser.add_argument('--desktop', action='store_true', help='Install Desktop version')
     parser.add_argument('--envdir', type=str, default=installEnvDir,
                         help='Environment directory for hubs (default: %s)' % (installEnvDir))
-    parser.add_argument('--with-r', action='store_true', 
+    parser.add_argument('--with-r', action='store_true',
                         help='Install the R kernel and packages')
     parser.add_argument('--no-notebooks', action='store_true', help='Do not install notebooks')
     parser.add_argument('--themes', type=str, help='Install with themes from package')
@@ -542,7 +560,7 @@ if __name__ == '__main__':
     args.func(args)
 
 
-# ./jupyter_notebook_setup/jpkg --desktop --with-py2 --with-r install 6  
+# ./jupyter_notebook_setup/jpkg --desktop --with-py2 --with-r install 6
 # ./jupyter_notebook_setup/jpkg --with-nanohub --envdir='/apps/share64/debian9/environ.d' --with-r --with-vnc install 6
 
 # typical nanohub
