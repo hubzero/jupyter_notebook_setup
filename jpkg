@@ -320,7 +320,7 @@ def make_install(args):
     print("R: %s" % (args.with_r))
     print("ML: %s" % (args.with_ml))
     print("VNC: %s" % (args.with_vnc))
-    print("Dash: %s" % (args.with_dash))
+#   print("Dash: %s" % (args.with_dash))
     if not args.desktop:
         print("Env Dir: %s" % (args.envdir))
     print("No notebooks: %s" % (args.no_notebooks))
@@ -461,9 +461,10 @@ def make_update(args):
     print("Updating version %s" % (args.ver))
     print("Nanohub: %s" % (args.with_nanohub))
     print("Desktop: %s" % (args.desktop))
+    print("R: %s" % (args.with_r))
     print("ML: %s" % (args.with_ml))
     print("VNC: %s" % (args.with_vnc))
-    print("Dash: %s" % (args.with_dash))
+#   print("Dash: %s" % (args.with_dash))
     if not args.desktop:
         print("Env Dir: %s" % (args.envdir))
     print("No notebooks: %s" % (args.no_notebooks))
@@ -489,26 +490,31 @@ def make_update(args):
     if args.with_nanohub:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_conda_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
         cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_pip_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_ml:
         cmd = '. ' + os.path.join(dirname, 'configs', 'ml_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
+
+    if args.with_py2:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'python2_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        run('set -e; ' + cmd)
 
     if args.with_r:
         cmd = '. ' + os.path.join(dirname, 'configs', 'r_' + args.ver)
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
         print("********\n%s\n********" % cmd)
-        os.system(cmd)
+        run('set -e; ' + cmd)
 
     if not args.no_notebooks:
         write_start_scripts(dirname,
@@ -602,7 +608,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--with-py2', action='store_true', help='Install Python2')
     parser.add_argument('--with-nanohub', action='store_true', help='Install tools for materials simulations')
-    parser.add_argument('--with-dash', action='store_true', help='Install Plotly Dash')
+#   parser.add_argument('--with-dash', action='store_true', help='Install Plotly Dash')
     parser.add_argument('--with-vnc', action='store_true', help='Install VNC')
     parser.add_argument('--with-ml', action='store_true', help='Install Machine Learning tools')
     parser.add_argument('--desktop', action='store_true', help='Install Desktop version')
