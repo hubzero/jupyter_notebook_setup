@@ -107,7 +107,7 @@ tags MATHSCI
         print(uselet)
 
 
-def install_extensions(p, desktop):
+def install_extensions(instpath, desktop):
     global dirname
     cwd = os.getcwd()
     os.chdir(dirname)
@@ -118,12 +118,12 @@ def install_extensions(p, desktop):
 
     # Notebook 7 has no classic server: the server settings go to jupyter_server, the classic UI
     # settings stay with nbclassic (start_jupyter), and the classic extensions are installed for it.
-    classic = os.path.exists(os.path.join(p, 'bin', 'jupyter-nbextension'))
+    classic = os.path.exists(os.path.join(instpath, 'bin', 'jupyter-nbextension'))
     nbextension = 'nbextension' if classic else 'nbclassic-extension'
 
-    spath = os.path.join(p, 'share', 'jupyter')
-    os.system('mkdir -p ' + os.path.join(p, 'etc', 'jupyter'))
-    fname = os.path.join(p, 'etc', 'jupyter', 'jupyter_notebook_config.py')
+    spath = os.path.join(instpath, 'share', 'jupyter')
+    os.system('mkdir -p ' + os.path.join(instpath, 'etc', 'jupyter'))
+    fname = os.path.join(instpath, 'etc', 'jupyter', 'jupyter_notebook_config.py')
     with open(fname, 'w') as f:
         f.write(intro)
         # f.write("c.Application.log_level = 'DEBUG'\n")
@@ -141,7 +141,7 @@ def install_extensions(p, desktop):
             f.write("c.NotebookApp.disable_check_xsrf = True")
 
     if not classic:
-        fname = os.path.join(p, 'etc', 'jupyter', 'jupyter_server_config.py')
+        fname = os.path.join(instpath, 'etc', 'jupyter', 'jupyter_server_config.py')
         with open(fname, 'w') as f:
             f.write("import sys\n")
             f.write("sys.path.append('%s')\n" % os.path.join(spath, 'nbextensions'))
@@ -159,7 +159,7 @@ def install_extensions(p, desktop):
     os.system('jupyter %s install --sys-prefix https://github.com/Calysto/notebook-extensions/archive/master.zip' % (nbextension))
 
     # install hublogin and terminate
-    dst = os.path.join(p, 'share', 'jupyter')
+    dst = os.path.join(instpath, 'share', 'jupyter')
     ext = os.path.join(dst, 'nbextensions')
     # os.system('cp terminate.py %s' % ext)
     if not desktop:
@@ -175,7 +175,7 @@ def install_extensions(p, desktop):
     os.chdir(cwd)
 
 
-def cleanup(p, desktop):
+def cleanup(instpath, desktop):
     # final cleanup
 
     # remove any local extensions because they may conflict with global
@@ -333,6 +333,15 @@ def validate_args(mode,
         sys.exit(1)
 
 
+def get_install_path(args):
+    if args.path_suffix:
+        instpath = os.path.realpath('anaconda-%s_%s' % (args.ver,args.path_suffix))
+    else:
+        instpath = os.path.realpath('anaconda-%s' % (args.ver))
+
+    return instpath
+
+
 def make_install(args):
     global dirname  # where the install scripts are
 
@@ -363,7 +372,7 @@ def make_install(args):
         script = os.path.basename(script)
     else:
         url = 'https://repo.continuum.io/archive/%s' % (script)
-    instpath = os.path.realpath('anaconda-%s' % (args.ver))
+    instpath = get_install_path(args)
     if os.path.lexists(instpath):
         print("Error: %s already exists." % instpath)
         sys.exit(1)
@@ -490,7 +499,7 @@ def make_update(args):
 
     validate_args('update',args)
 
-    instpath = os.path.realpath('anaconda-%s' % (args.ver))
+    instpath = get_install_path(args)
     if not os.path.isdir(instpath):
         print("Error: %s not found." % (instpath))
         sys.exit(1)
@@ -556,7 +565,7 @@ def make_update(args):
 
 
 def make_cleanup(args):
-    instpath = os.path.realpath('anaconda-%s' % (args.ver))
+    instpath = get_install_path(args)
     check_perm(instpath)
 
 
@@ -637,6 +646,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--path-suffix', type=str, help='Append suffix to installation path')
     parser.add_argument('--with-py2', action='store_true', help='Install Python2')
     parser.add_argument('--with-nanohub', action='store_true', help='Install tools for materials simulations')
 #   parser.add_argument('--with-dash', action='store_true', help='Install Plotly Dash')
