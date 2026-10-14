@@ -62,11 +62,11 @@ def check_perm(p):
     os.chdir(cwd)
 
 
-def install_octave(p, env_dir, desktop):
+def install_octave(instpath, env_dir, desktop):
     "Install octave kernel, if octave is found"
-    octave_kstr = find_octave(p, desktop, env_dir, prompt=False)
+    octave_kstr = find_octave(instpath, desktop, env_dir, prompt=False)
     if octave_kstr is not None:
-        dname = os.path.join(p, 'share', 'jupyter', 'kernels', 'octave')
+        dname = os.path.join(instpath, 'share', 'jupyter', 'kernels', 'octave')
         if not os.path.exists(dname):
             os.mkdir(dname)
         fname = os.path.join(dname, 'kernel.json')
@@ -318,6 +318,7 @@ def make_install(args):
     print("Desktop: %s" % (args.desktop))
     print("Python2: %s" % (args.with_py2))
     print("R: %s" % (args.with_r))
+    print("Octave: %s" % (args.with_octave))
     print("ML: %s" % (args.with_ml))
     print("VNC: %s" % (args.with_vnc))
 #   print("Dash: %s" % (args.with_dash))
@@ -337,6 +338,8 @@ def make_install(args):
         configs.append('python2_' + args.ver)
     if args.with_r:
         configs.append('r_' + args.ver)
+    if args.with_octave:
+        configs.append('octave_' + args.ver)
     if args.with_vnc:
         configs.append('nbnovnc')
     missing = [os.path.join('configs', c) for c in configs
@@ -346,7 +349,6 @@ def make_install(args):
               % (args.ver, ', '.join(missing)))
         sys.exit(1)
 
-    env_dir = args.envdir
     script = get_scriptname(args.ver)
     # '#ver=' is either an Anaconda archive file name or the full URL of an installer (Miniforge)
     if '://' in script:
@@ -432,6 +434,11 @@ def make_install(args):
         print("********\n%s\n********" % cmd)
         run('set -e; ' + cmd)
 
+    if args.with_octave:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'octave_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        run('set -e; ' + cmd)
+
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
         print("********\n%s\n********" % cmd)
@@ -443,11 +450,12 @@ def make_install(args):
                             args.ver,
                             args.themes)
 
-        install_octave(instpath, env_dir, args.desktop)
+        if args.with_octave:
+            install_octave(instpath, args.envdir, args.desktop)
         install_extensions(instpath, args.desktop)
 
     if not args.desktop:
-        write_env(args.ver, env_dir, instpath)
+        write_env(args.ver, args.envdir, instpath)
 
     check_perm(instpath)
     cleanup(instpath, args.desktop)
@@ -462,6 +470,7 @@ def make_update(args):
     print("Nanohub: %s" % (args.with_nanohub))
     print("Desktop: %s" % (args.desktop))
     print("R: %s" % (args.with_r))
+    print("Octave: %s" % (args.with_octave))
     print("ML: %s" % (args.with_ml))
     print("VNC: %s" % (args.with_vnc))
 #   print("Dash: %s" % (args.with_dash))
@@ -472,7 +481,6 @@ def make_update(args):
         print("Themes: %s" % (args.themes))
     print()
 
-    env_dir = args.envdir
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
     if not os.path.isdir(instpath):
         print("Error: %s not found." % (instpath))
@@ -511,6 +519,11 @@ def make_update(args):
         print("********\n%s\n********" % cmd)
         run('set -e; ' + cmd)
 
+    if args.with_octave:
+        cmd = '. ' + os.path.join(dirname, 'configs', 'octave_' + args.ver)
+        print("********\n%s\n********" % cmd)
+        run('set -e; ' + cmd)
+
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
         print("********\n%s\n********" % cmd)
@@ -522,6 +535,13 @@ def make_update(args):
                             args.ver,
                             args.themes)
 
+        if args.with_octave:
+            install_octave(instpath, args.envdir, args.desktop)
+        install_extensions(instpath, args.desktop)
+
+    if not args.desktop:
+        write_env(args.ver, args.envdir, instpath)
+
     check_perm(instpath)
     cleanup(instpath, args.desktop)
 
@@ -531,10 +551,12 @@ def make_cleanup(args):
     check_perm(instpath)
 
 
-def find_octave(pypath, desktop, env_dir, prompt=True):
+def find_octave(instpath, desktop, env_dir, prompt=True):
     global dirname
 
-    pypath += "/bin/python"
+    pypath = os.path.join(instpath,"envs","octave","bin","python")
+    if not os.path.isdir(pypath):
+        pypath = os.path.join(instpath,"bin","python")
 
     if   desktop:
         try:
@@ -616,6 +638,8 @@ if __name__ == '__main__':
                         help='Environment directory for hubs (default: %s)' % (installEnvDir))
     parser.add_argument('--with-r', action='store_true',
                         help='Install the R kernel and packages')
+    parser.add_argument('--with-octave', action='store_true',
+                        help='Install the octave kernel')
     parser.add_argument('--no-notebooks', action='store_true', help='Do not install notebooks')
     parser.add_argument('--themes', type=str, help='Install with themes from package')
 
