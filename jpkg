@@ -308,6 +308,31 @@ def write_start_scripts(dirname,
     os.system('chmod a+x %s' % (os.path.join(bindir,'start_jupyterlab')))
 
 
+def validate_args(mode,
+                  args):
+    configs = []
+    if mode == 'install':
+        configs += ['base_conda_' + args.ver, 'base_pip_' + args.ver]
+    if args.with_nanohub:
+        configs += ['nanohub_conda_' + args.ver, 'nanohub_pip_' + args.ver]
+    if args.with_ml:
+        configs.append('ml_' + args.ver)
+    if args.with_py2:
+        configs.append('python2_' + args.ver)
+    if args.with_r:
+        configs.append('r_' + args.ver)
+    if args.with_octave:
+        configs.append('octave_' + args.ver)
+    if args.with_vnc:
+        configs.append('nbnovnc')
+    missing = [os.path.join('configs', c) for c in configs
+               if not os.path.isfile(os.path.join(dirname, 'configs', c))]
+    if missing:
+        print("Error: version %s has no config for the selected options: %s"
+              % (args.ver, ', '.join(missing)))
+        sys.exit(1)
+
+
 def make_install(args):
     global dirname  # where the install scripts are
 
@@ -329,25 +354,7 @@ def make_install(args):
         print("Themes: %s" % (args.themes))
     print()
 
-    configs = ['base_conda_' + args.ver, 'base_pip_' + args.ver]
-    if args.with_nanohub:
-        configs += ['nanohub_conda_' + args.ver, 'nanohub_pip_' + args.ver]
-    if args.with_ml:
-        configs.append('ml_' + args.ver)
-    if args.with_py2:
-        configs.append('python2_' + args.ver)
-    if args.with_r:
-        configs.append('r_' + args.ver)
-    if args.with_octave:
-        configs.append('octave_' + args.ver)
-    if args.with_vnc:
-        configs.append('nbnovnc')
-    missing = [os.path.join('configs', c) for c in configs
-               if not os.path.isfile(os.path.join(dirname, 'configs', c))]
-    if missing:
-        print("Error: version %s has no config for the selected options: %s"
-              % (args.ver, ', '.join(missing)))
-        sys.exit(1)
+    validate_args('install',args)
 
     script = get_scriptname(args.ver)
     # '#ver=' is either an Anaconda archive file name or the full URL of an installer (Miniforge)
@@ -480,6 +487,8 @@ def make_update(args):
     if args.themes:
         print("Themes: %s" % (args.themes))
     print()
+
+    validate_args('update',args)
 
     instpath = os.path.realpath('anaconda-%s' % (args.ver))
     if not os.path.isdir(instpath):
