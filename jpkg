@@ -96,6 +96,10 @@ tags MATHSCI
     if env_dir != "STDOUT":
         fname = os.path.join(env_dir, os.path.basename(instpath))
         try:
+            os.remove(fname)
+        except:
+            pass
+        try:
             os.system('mkdir -p %s' % (env_dir))
             with open(fname, 'w') as f:
                 f.write(uselet)
