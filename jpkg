@@ -580,7 +580,7 @@ def find_octave(instpath, desktop, env_dir, prompt=True):
     global dirname
 
     pypath = os.path.join(instpath,"envs","octave","bin","python")
-    if not os.path.isdir(pypath):
+    if not os.path.exists(pypath):
         pypath = os.path.join(instpath,"bin","python")
 
     if   desktop:
