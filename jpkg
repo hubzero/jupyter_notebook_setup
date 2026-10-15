@@ -313,12 +313,13 @@ def write_start_scripts(dirname,
 
 
 def validate_args(mode,
-                  args):
+                  args,
+                  hubName):
     configs = []
     if mode == 'install':
         configs += ['base_conda_' + args.ver, 'base_pip_' + args.ver]
-    if args.with_nanohub:
-        configs += ['nanohub_conda_' + args.ver, 'nanohub_pip_' + args.ver]
+    if args.with_hub:
+        configs += [hubName + '_conda_' + args.ver, hubName + '_pip_' + args.ver]
     if args.with_ml:
         configs.append('ml_' + args.ver)
     if args.with_py2:
@@ -352,7 +353,7 @@ def make_install(args):
 #   print(args)
     print()
     print("Installing version %s" % (args.ver))
-    print("Nanohub: %s" % (args.with_nanohub))
+    print("Hub: %s" % (args.with_hub))
     print("Desktop: %s" % (args.desktop))
     print("Python2: %s" % (args.with_py2))
     print("R: %s" % (args.with_r))
@@ -367,7 +368,8 @@ def make_install(args):
         print("Themes: %s" % (args.themes))
     print()
 
-    validate_args('install',args)
+    hubName = os.uname()[1].split('-')[0]
+    validate_args('install',args,hubName)
 
     script = get_scriptname(args.ver)
     # '#ver=' is either an Anaconda archive file name or the full URL of an installer (Miniforge)
@@ -418,50 +420,50 @@ def make_install(args):
     os.environ['PATH'] = bindir + ':' + path
 
     cmd = '. ' + os.path.join(dirname, 'configs', 'base_conda_' + args.ver)
-    print("********\n%s\n********" % cmd)
+    print("********\n%s\n********" % (cmd))
     run('set -e; ' + cmd)
-    if args.with_nanohub:
-        cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_conda_' + args.ver)
-        print("********\n%s\n********" % cmd)
+    if args.with_hub:
+        cmd = '. ' + os.path.join(dirname, 'configs', hubName + '_conda_' + args.ver)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     cmd = '. ' + os.path.join(dirname, 'configs', 'base_pip_' + args.ver)
-    print("********\n%s\n********" % cmd)
+    print("********\n%s\n********" % (cmd))
     run('set -e; ' + cmd)
 
-    if args.with_nanohub:
-        cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_pip_' + args.ver)
-        print("********\n%s\n********" % cmd)
+    if args.with_hub:
+        cmd = '. ' + os.path.join(dirname, 'configs', hubName + '_pip_' + args.ver)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_ml:
         cmd = '. ' + os.path.join(dirname, 'configs', 'ml_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     # if args.desktop:
     #     cmd = '. ' + os.path.join(dirname, 'configs', 'desktop_' + args.ver)
-    #     print("********\n%s\n********" % cmd)
+    #     print("********\n%s\n********" % (cmd))
     #     run('set -e; ' + cmd)
 
     if args.with_py2:
         cmd = '. ' + os.path.join(dirname, 'configs', 'python2_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_r:
         cmd = '. ' + os.path.join(dirname, 'configs', 'r_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_octave:
         cmd = '. ' + os.path.join(dirname, 'configs', 'octave_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if not args.no_notebooks:
@@ -487,7 +489,7 @@ def make_update(args):
 #   print(args)
     print()
     print("Updating version %s" % (args.ver))
-    print("Nanohub: %s" % (args.with_nanohub))
+    print("Hub: %s" % (args.with_hub))
     print("Desktop: %s" % (args.desktop))
     print("R: %s" % (args.with_r))
     print("Octave: %s" % (args.with_octave))
@@ -501,7 +503,8 @@ def make_update(args):
         print("Themes: %s" % (args.themes))
     print()
 
-    validate_args('update',args)
+    hubName = os.uname()[1].split('-')[0]
+    validate_args('update',args,hubName)
 
     instpath = get_install_path(args)
     if not os.path.isdir(instpath):
@@ -517,38 +520,38 @@ def make_update(args):
     path = os.environ['PATH']
     os.environ['PATH'] = bindir + ':' + path
 
-    if args.with_nanohub:
-        cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_conda_' + args.ver)
-        print("********\n%s\n********" % cmd)
+    if args.with_hub:
+        cmd = '. ' + os.path.join(dirname, 'configs', hubName + '_conda_' + args.ver)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
-        cmd = '. ' + os.path.join(dirname, 'configs', 'nanohub_pip_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        cmd = '. ' + os.path.join(dirname, 'configs', hubName + '_pip_' + args.ver)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_ml:
         cmd = '. ' + os.path.join(dirname, 'configs', 'ml_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_py2:
         cmd = '. ' + os.path.join(dirname, 'configs', 'python2_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_r:
         cmd = '. ' + os.path.join(dirname, 'configs', 'r_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_octave:
         cmd = '. ' + os.path.join(dirname, 'configs', 'octave_' + args.ver)
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if args.with_vnc:
         cmd = '. ' + os.path.join(dirname, 'configs', 'nbnovnc')
-        print("********\n%s\n********" % cmd)
+        print("********\n%s\n********" % (cmd))
         run('set -e; ' + cmd)
 
     if not args.no_notebooks:
@@ -652,7 +655,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--path-suffix', type=str, help='Append suffix to installation path')
     parser.add_argument('--with-py2', action='store_true', help='Install Python2')
-    parser.add_argument('--with-nanohub', action='store_true', help='Install tools for materials simulations')
+    parser.add_argument('--with-hub', action='store_true', help='Install HUB specific tools')
 #   parser.add_argument('--with-dash', action='store_true', help='Install Plotly Dash')
     parser.add_argument('--with-vnc', action='store_true', help='Install VNC')
     parser.add_argument('--with-ml', action='store_true', help='Install Machine Learning tools')
@@ -689,7 +692,7 @@ if __name__ == '__main__':
 
 
 # ./jupyter_notebook_setup/jpkg --desktop --with-py2 --with-r install 6
-# ./jupyter_notebook_setup/jpkg --with-nanohub --envdir='/apps/share64/debian9/environ.d' --with-r --with-vnc install 6
+# ./jupyter_notebook_setup/jpkg --with-hub --envdir='/apps/share64/debian9/environ.d' --with-r --with-vnc install 6
 
 # typical nanohub
-# ./jupyter_notebook_setup/jpkg --with-nanohub --with-py2 --with-r --with-vnc --with-ml install 6
+# ./jupyter_notebook_setup/jpkg --with-hub --with-py2 --with-r --with-vnc --with-ml install 6
