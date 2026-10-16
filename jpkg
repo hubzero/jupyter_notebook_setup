@@ -601,14 +601,14 @@ def find_octave(instpath, desktop, env_dir, prompt=True):
         kernel = open(os.path.join(dirname, 'octave_kernel_desktop')).read()
         s = Template(kernel)
         d = dict(python=pypath,
-                 ver="Octave %s" % ver,
+                 ver="Octave %s" % (ver),
                  exe=opath)
         return s.substitute(d)
     elif env_dir == "STDOUT":
         return None
 
     try:
-        olist = check_output("ls %s/octave*" % env_dir, shell=True).decode().split()
+        olist = check_output("ls %s/octave*" % (env_dir), shell=True).decode().split()
     except:
         if prompt:
             print("\nWARNING: No octave module was found.")
@@ -626,11 +626,23 @@ def find_octave(instpath, desktop, env_dir, prompt=True):
                 ver = opath.split('-')[-1].split('/')[0]
                 break
 
+    try:
+        fbPath = check_output("which xwfb-run", shell=True).decode().strip()
+    except:
+        try:
+            fbPath = check_output("which xvfb-run", shell=True).decode().strip()
+        except:
+            exeCommand = os.path.join(opath,"octave")
+        else:
+            exeCommand = "xvfb-run -- " + os.path.join(opath,"octave")
+    else:
+        exeCommand = "xwfb-run -c weston -- " + os.path.join(opath,"octave")
+
     kernel = open(os.path.join(dirname, 'octave_kernel')).read()
     s = Template(kernel)
     d = dict(python=pypath,
-             ver="Octave %s" % ver,
-             exe=opath + '/octave',
+             ver="Octave %s" % (ver),
+             exe=exeCommand,
              home=os.path.dirname(opath))
     return s.substitute(d)
 
